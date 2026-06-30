@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.SUPABASE_URL || "https://rtskdnthauspcjrdwffh.supabase.co";
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || "sb_publishable_b9I-LwtfkShw74kjKJtWbg_uu-9mTPh";
+const supabaseUrl = process.env.SUPABASE_URL || "";
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || "";
 
 if (!supabaseUrl || !supabaseKey) {
   console.error("ERRO CRÍTICO: As credenciais do Supabase (SUPABASE_URL e SUPABASE_KEY) não foram encontradas nas variáveis de ambiente!");
