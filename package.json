@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build",
-    "clean": "rm -rf dist",
+    "build": "vite build && esbuild api/index.ts --bundle --platform=node --format=esm --outfile=api/index.js",
+    "clean": "rm -rf dist api/index.js",
     "lint": "tsc --noEmit"
   },
+
   "dependencies": {
     "@google/genai": "^2.4.0",
     "@supabase/supabase-js": "^2.110.0",
