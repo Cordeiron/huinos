@@ -443,6 +443,15 @@ export default function App() {
     }
 
     switch (activeView) {
+      case "Login":
+        return (
+          <div className="max-w-md mx-auto py-12">
+            <LoginView onLoginSuccess={(user, token) => {
+              handleLoginSuccess(user, token);
+              setActiveView("Perfil");
+            }} />
+          </div>
+        );
       case "Sobre":
         return <AboutView />;
       case "Agenda":
@@ -654,8 +663,17 @@ export default function App() {
               />
             </div>
 
-            {/* Profile Avatar Trigger (No Photo representation - elegant initials circle) */}
-            {currentRole !== UserRole.VISITOR && (
+            {/* Profile Avatar or Entrar Trigger */}
+            {currentRole === UserRole.VISITOR ? (
+              <button
+                onClick={() => setActiveView("Login")}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all bg-red-600 hover:bg-red-700 text-white shadow-sm flex items-center gap-1.5`}
+                title="Entrar"
+              >
+                <User className="h-3.5 w-3.5" />
+                <span>Entrar</span>
+              </button>
+            ) : (
               <button
                 onClick={() => setActiveView("Perfil")}
                 className={`h-8 w-8 rounded-full overflow-hidden border-2 transition-all ${
