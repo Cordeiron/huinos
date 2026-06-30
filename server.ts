@@ -191,6 +191,68 @@ async function startServer() {
     }
   });
 
+    app.post("/api/usersOff", async (req: any, res: any) => {
+        try {
+            const { id: creatorId, role: creatorRole, name: creatorName, email: creatorEmail } = req.user;
+            const { name, email, password, role, phone, birthDate, cellGroup } = req.body;
+
+            if (!name || !email || !password || !role) {
+                return res.status(400).json({ error: "Campos obrigatórios ausentes" });
+            }
+
+            // Check if email already exists
+            const existingUser = await db.getUserByEmail(email);
+            if (existingUser) {
+                return res.status(400).json({ error: "Este email já está cadastrado" });
+            }
+
+            // Role-Based Validation rules
+            let finalRole = role;
+            if (creatorRole === UserRole.LEADER) {
+                // Leaders can only create Member accounts
+                finalRole = UserRole.MEMBER;
+            } else if (creatorRole !== UserRole.ADMIN) {
+                // Members cannot create users
+                return res.status(403).json({ error: "Acesso negado: permissão insuficiente" });
+            }
+
+            const salt = bcrypt.genSaltSync(10);
+            const passwordHash = bcrypt.hashSync(password, salt);
+
+            const newUser = {
+                id: "user-" + Math.random().toString(36).substr(2, 9),
+                name,
+                email: email.toLowerCase(),
+                passwordHash,
+                phone: phone || "",
+                birthDate: birthDate || "",
+                cellGroup: cellGroup || "",
+                role: finalRole,
+                avatarUrl: "",
+                points: 0,
+                medals: { gold: 0, silver: 0, bronze: 0 },
+                achievements: [],
+                createdBy: creatorId,
+                createdAt: new Date().toISOString()
+            };
+
+            const createdUser = await db.createUser(newUser);
+
+            await db.logAction(
+                creatorName,
+                creatorEmail,
+                creatorRole,
+                `Criou usuário: ${name} (${finalRole})`
+            );
+
+            const { passwordHash: _, ...userProfile } = createdUser;
+            res.status(201).json(userProfile);
+        } catch (err: any) {
+            console.error("Erro ao criar usuário:", err);
+            res.status(500).json({ error: "Erro interno no servidor" });
+        }
+    });
+
   // 3. Edit User
   app.put("/api/users/:id", authenticateToken, async (req: any, res: any) => {
     try {
