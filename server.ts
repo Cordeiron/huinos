@@ -98,7 +98,7 @@ async function startServer() {
   });
 
   // --- USER MANAGEMENT (RBAC SERVER-SIDE PROTECTION) ---
-
+  
   // 1. Get Users
   app.get("/api/users", authenticateToken, async (req: any, res: any) => {
     try {
@@ -137,7 +137,7 @@ async function startServer() {
       if (!name || !email || !password || !role) {
         return res.status(400).json({ error: "Campos obrigatórios ausentes" });
       }
-
+      
       // Check if email already exists
       const existingUser = await db.getUserByEmail(email);
       if (existingUser) {
@@ -156,7 +156,7 @@ async function startServer() {
 
       const salt = bcrypt.genSaltSync(10);
       const passwordHash = bcrypt.hashSync(password, salt);
-
+      
       const newUser = {
         id: "user-" + Math.random().toString(36).substr(2, 9),
         name,
@@ -347,7 +347,7 @@ async function startServer() {
       };
 
       const created = await db.createAnnouncement(newAnn);
-
+      
       // Add a system notification
       const newNotif = {
         id: "not-" + Math.random().toString(36).substr(2, 9),
@@ -898,7 +898,7 @@ async function startServer() {
         if (user && challenge) {
           const currentPoints = (user.points || 0) + challenge.points;
           const medals = { ...user.medals };
-
+          
           // Add a medal occasionally or systematically
           if (currentPoints >= 400 && medals.gold === 0) {
             medals.gold += 1;
