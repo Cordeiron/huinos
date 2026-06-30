@@ -1,0 +1,6 @@
+{
+  "name": "HUIOS",
+  "description": "Sistema web moderno, responsivo e seguro para o grupo de jovens cristãos HUIOS.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
