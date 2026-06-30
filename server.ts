@@ -98,7 +98,7 @@ async function startServer() {
   });
 
   // --- USER MANAGEMENT (RBAC SERVER-SIDE PROTECTION) ---
-  
+
   // 1. Get Users
   app.get("/api/users", authenticateToken, async (req: any, res: any) => {
     try {
@@ -137,7 +137,7 @@ async function startServer() {
       if (!name || !email || !password || !role) {
         return res.status(400).json({ error: "Campos obrigatórios ausentes" });
       }
-      
+
       // Check if email already exists
       const existingUser = await db.getUserByEmail(email);
       if (existingUser) {
@@ -156,7 +156,7 @@ async function startServer() {
 
       const salt = bcrypt.genSaltSync(10);
       const passwordHash = bcrypt.hashSync(password, salt);
-      
+
       const newUser = {
         id: "user-" + Math.random().toString(36).substr(2, 9),
         name,
@@ -193,7 +193,8 @@ async function startServer() {
 
     app.post("/api/usersOff", async (req: any, res: any) => {
         try {
-            const { id: creatorId, role: creatorRole, name: creatorName, email: creatorEmail } = req.user;
+            //const { id: creatorId, role: creatorRole, name: creatorName, email: creatorEmail } = req.user;
+            const creatorRole = "ADMIN";
             const { name, email, password, role, phone, birthDate, cellGroup } = req.body;
 
             if (!name || !email || !password || !role) {
@@ -232,16 +233,16 @@ async function startServer() {
                 points: 0,
                 medals: { gold: 0, silver: 0, bronze: 0 },
                 achievements: [],
-                createdBy: creatorId,
+                createdBy: "admin-1",
                 createdAt: new Date().toISOString()
             };
 
             const createdUser = await db.createUser(newUser);
 
             await db.logAction(
-                creatorName,
-                creatorEmail,
-                creatorRole,
+                "Nauhan Cordeiro",
+                "nauham86@gmail.com",
+                "ADMIN",
                 `Criou usuário: ${name} (${finalRole})`
             );
 
@@ -409,7 +410,7 @@ async function startServer() {
       };
 
       const created = await db.createAnnouncement(newAnn);
-      
+
       // Add a system notification
       const newNotif = {
         id: "not-" + Math.random().toString(36).substr(2, 9),
@@ -960,7 +961,7 @@ async function startServer() {
         if (user && challenge) {
           const currentPoints = (user.points || 0) + challenge.points;
           const medals = { ...user.medals };
-          
+
           // Add a medal occasionally or systematically
           if (currentPoints >= 400 && medals.gold === 0) {
             medals.gold += 1;
