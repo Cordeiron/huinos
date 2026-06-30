@@ -2,8 +2,8 @@ import express from "express";
 import cors from "cors";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { db } from "../server/db";
-import { UserRole } from "../src/types";
+import { db } from "../server/db.ts";
+import { UserRole } from "../src/types.ts";
 
 const JWT_SECRET = process.env.JWT_SECRET || "huios-production-secret-key-2026-987241";
 
