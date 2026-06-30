@@ -1,0 +1,39 @@
+huinos/
+├── api/
+│   └── index.ts
+├── assets/
+├── server/
+│   ├── db.ts
+│   └── supabase.ts
+├── src/
+│   ├── components/
+│   │   ├── AboutView.tsx
+│   │   ├── AdminDashboard.tsx
+│   │   ├── ChallengesView.tsx
+│   │   ├── Footer.tsx
+│   │   ├── GlobalSearch.tsx
+│   │   ├── HomeView.tsx
+│   │   ├── LoginView.tsx
+│   │   ├── Logo.tsx
+│   │   ├── NewsView.tsx
+│   │   ├── NotificationDropdown.tsx
+│   │   ├── PrayerRequestsView.tsx
+│   │   ├── ProfileView.tsx
+│   │   ├── ScheduleView.tsx
+│   │   └── SuggestionsView.tsx
+│   ├── lib/
+│   │   └── api.ts
+│   ├── App.tsx
+│   ├── data.ts
+│   ├── index.css
+│   ├── main.tsx
+│   └── types.ts
+├── README.md
+├── index.html
+├── metadata.json
+├── package-lock.json
+├── package.json
+├── server.ts
+├── supabase_schema.sql
+├── tsconfig.json
+└── vite.config.ts
