@@ -1,24 +1,5 @@
 {
   "version": 2,
-  "functions": {
-    "api/index.ts": {
-      "includeFiles": "server/**"
-    }
-  },
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
-    },
-    {
-      "src": "api/index.ts",
-      "use": "@vercel/node",
-      "config": {
-        "nodeVersion": "24.x"
-      }
-    }
-  ],
   "rewrites": [
     {
       "source": "/api/(.*)",

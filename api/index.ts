@@ -2,8 +2,8 @@ import express from "express";
 import cors from "cors";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { db } from "../server/db.ts";
-import { UserRole } from "../src/types.ts";
+import { db } from "../server/db";
+import { UserRole } from "../src/types";
 
 const JWT_SECRET = process.env.JWT_SECRET || "huios-production-secret-key-2026-987241";
 
@@ -125,7 +125,7 @@ app.post("/api/users", authenticateToken, async (req: any, res: any) => {
     if (!name || !email || !password || !role) {
       return res.status(400).json({ error: "Campos obrigatórios ausentes" });
     }
-    
+
     const existingUser = await db.getUserByEmail(email);
     if (existingUser) {
       return res.status(400).json({ error: "Este email já está cadastrado" });
@@ -140,7 +140,7 @@ app.post("/api/users", authenticateToken, async (req: any, res: any) => {
 
     const salt = bcrypt.genSaltSync(10);
     const passwordHash = bcrypt.hashSync(password, salt);
-    
+
     const newUser = {
       id: "user-" + Math.random().toString(36).substr(2, 9),
       name,
