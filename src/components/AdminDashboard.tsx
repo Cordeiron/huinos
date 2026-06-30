@@ -8,10 +8,12 @@ import {
   TrendingUp, Users, Heart, FileText, Calendar, Award, Lightbulb, Bell, Settings, Plus, Trash2, Check, X, ShieldAlert, BookOpen, Clock, PlayCircle
 } from "lucide-react";
 import {
-  UserProfile, EventItem, NewsItem, Announcement, PrayerRequest, SuggestionItem, Challenge, ChallengeSubmission, SystemNotification, VerseOfTheWeek, AccessLog
+  UserRole, UserProfile, EventItem, NewsItem, Announcement, PrayerRequest, SuggestionItem, Challenge, ChallengeSubmission, SystemNotification, VerseOfTheWeek, AccessLog
 } from "../types";
+import { api } from "../lib/api";
 
 interface AdminDashboardProps {
+  currentRole: UserRole;
   stats: {
     membersCount: number;
     prayersCount: number;
@@ -43,6 +45,7 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({
+  currentRole,
   stats,
   news,
   events,
@@ -65,7 +68,146 @@ export default function AdminDashboard({
   onSendNotification,
   onUpdateSettings
 }: AdminDashboardProps) {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "news" | "events" | "challenges" | "prayers" | "suggestions" | "notifications" | "settings">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "news" | "events" | "challenges" | "prayers" | "suggestions" | "notifications" | "settings" | "users">("dashboard");
+
+  // User management states
+  const [usersList, setUsersList] = useState<any[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [userFormName, setUserFormName] = useState("");
+  const [userFormEmail, setUserFormEmail] = useState("");
+  const [userFormPassword, setUserFormPassword] = useState("");
+  const [userFormRole, setUserFormRole] = useState<UserRole>(UserRole.MEMBER);
+  const [userFormPhone, setUserFormPhone] = useState("");
+  const [userFormBirthDate, setUserFormBirthDate] = useState("");
+  const [userFormCellGroup, setUserFormCellGroup] = useState("");
+  const [userFormPoints, setUserFormPoints] = useState(0);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+
+  const fetchUsersList = async () => {
+    setUsersLoading(true);
+    try {
+      const data = await api.getUsers();
+      setUsersList(data);
+    } catch (err: any) {
+      showToast(err.message || "Erro ao carregar lista de usuários");
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  // Fetch users when active tab is users or on component mount
+  React.useEffect(() => {
+    if (activeTab === "users" || activeTab === "dashboard") {
+      fetchUsersList();
+    }
+  }, [activeTab]);
+
+  const handleCreateOrUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userFormName || !userFormEmail || (!editingUserId && !userFormPassword)) {
+      showToast("Preencha todos os campos obrigatórios");
+      return;
+    }
+
+    try {
+      if (editingUserId) {
+        // Update
+        const payload: any = {
+          name: userFormName,
+          email: userFormEmail,
+          phone: userFormPhone,
+          birthDate: userFormBirthDate,
+          cellGroup: userFormCellGroup,
+          points: Number(userFormPoints)
+        };
+        if (userFormPassword) {
+          payload.password = userFormPassword;
+        }
+        if (currentRole === UserRole.ADMIN) {
+          payload.role = userFormRole;
+        }
+
+        await api.updateUser(editingUserId, payload);
+        showToast("Usuário atualizado com sucesso!");
+      } else {
+        // Create
+        const payload = {
+          name: userFormName,
+          email: userFormEmail,
+          password: userFormPassword,
+          role: currentRole === UserRole.ADMIN ? userFormRole : UserRole.MEMBER,
+          phone: userFormPhone,
+          birthDate: userFormBirthDate,
+          cellGroup: userFormCellGroup
+        };
+
+        await api.createUser(payload);
+        showToast("Novo usuário cadastrado com sucesso!");
+      }
+
+      // Reset form
+      setUserFormName("");
+      setUserFormEmail("");
+      setUserFormPassword("");
+      setUserFormRole(UserRole.MEMBER);
+      setUserFormPhone("");
+      setUserFormBirthDate("");
+      setUserFormCellGroup("");
+      setUserFormPoints(0);
+      setEditingUserId(null);
+
+      // Reload
+      fetchUsersList();
+    } catch (err: any) {
+      showToast(err.message || "Erro ao salvar usuário");
+    }
+  };
+
+  const startEditUser = (user: any) => {
+    setEditingUserId(user.id);
+    setUserFormName(user.name);
+    setUserFormEmail(user.email);
+    setUserFormPassword(""); // Leave empty for no change
+    setUserFormRole(user.role);
+    setUserFormPhone(user.phone || "");
+    setUserFormBirthDate(user.birthDate || "");
+    setUserFormCellGroup(user.cellGroup || "");
+    setUserFormPoints(user.points || 0);
+  };
+
+  const cancelEditUser = () => {
+    setEditingUserId(null);
+    setUserFormName("");
+    setUserFormEmail("");
+    setUserFormPassword("");
+    setUserFormRole(UserRole.MEMBER);
+    setUserFormPhone("");
+    setUserFormBirthDate("");
+    setUserFormCellGroup("");
+    setUserFormPoints(0);
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm("Tem certeza que deseja excluir permanentemente este usuário?")) {
+      return;
+    }
+    try {
+      await api.deleteUser(userId);
+      showToast("Usuário excluído com sucesso!");
+      fetchUsersList();
+    } catch (err: any) {
+      showToast(err.message || "Erro ao excluir usuário");
+    }
+  };
+
+  // Auto-correct active tab if restricted for Leader
+  React.useEffect(() => {
+    if (currentRole !== UserRole.ADMIN) {
+      if (activeTab === "challenges" || activeTab === "prayers" || activeTab === "suggestions") {
+        setActiveTab("dashboard");
+      }
+    }
+  }, [currentRole, activeTab]);
 
   // Local state for non-blocking toast notifications
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -197,11 +339,16 @@ export default function AdminDashboard({
       <section className="flex flex-wrap gap-1.5 bg-[#252525] p-2 rounded-2xl border border-white/5 shadow-md">
         {[
           { id: "dashboard", label: "Dashboard", icon: TrendingUp },
+          { id: "users", label: "Usuários", icon: Users },
           { id: "news", label: "Notícias", icon: FileText },
           { id: "events", label: "Agenda", icon: Calendar },
-          { id: "challenges", label: "Desafios", icon: Award },
-          { id: "prayers", label: "Pedidos Oração", icon: Heart },
-          { id: "suggestions", label: "Sugestões", icon: Lightbulb },
+          ...(currentRole === UserRole.ADMIN
+            ? [
+                { id: "challenges", label: "Desafios", icon: Award },
+                { id: "prayers", label: "Pedidos Oração", icon: Heart },
+                { id: "suggestions", label: "Sugestões", icon: Lightbulb }
+              ]
+            : []),
           { id: "notifications", label: "Notificações", icon: Bell },
           { id: "settings", label: "Configurações", icon: Settings }
         ].map((tab) => {
@@ -707,7 +854,9 @@ export default function AdminDashboard({
                     <div key={sub.id} className="p-4 border border-white/5 rounded-2xl space-y-3 bg-[#1B1B1B]/40 text-xs">
                       <div className="flex items-center gap-2 justify-between">
                         <div className="flex items-center gap-2">
-                          <img src={sub.userAvatar} className="h-6 w-6 rounded-full object-cover shrink-0" alt="" />
+                          <div className="h-6 w-6 rounded-full bg-red-600/25 text-red-400 flex items-center justify-center text-[9px] font-black uppercase shrink-0">
+                            {sub.userName.slice(0, 2)}
+                          </div>
                           <span className="font-bold text-white">{sub.userName}</span>
                         </div>
                         <span className="text-[9px] text-neutral-400 font-mono">{sub.date}</span>
@@ -1005,6 +1154,238 @@ export default function AdminDashboard({
               <span>Salvar Alterações</span>
             </button>
           </form>
+        </div>
+      )}
+
+      {/* TAB 9: USER MANAGEMENT (ADMIN & LEADER REAL SECURE RBAC UI) */}
+      {activeTab === "users" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-200">
+          
+          {/* USER FORM (CREATE & EDIT) */}
+          <div className="lg:col-span-1 bg-[#252525] rounded-3xl p-6 border border-white/5 shadow-xl space-y-4 h-fit">
+            <h3 className="font-display text-sm font-bold text-white flex items-center gap-1.5">
+              <Plus className="h-4.5 w-4.5 text-[#C62828]" />
+              <span>{editingUserId ? "Editar Usuário" : "Cadastrar Novo"}</span>
+            </h3>
+            
+            <form onSubmit={handleCreateOrUpdateUser} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-neutral-400 uppercase">Nome Completo *</label>
+                <input
+                  type="text"
+                  value={userFormName}
+                  onChange={(e) => setUserFormName(e.target.value)}
+                  placeholder="Nome do usuário"
+                  required
+                  className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 text-white rounded-xl outline-none focus:border-[#C62828]/50"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-neutral-400 uppercase">Endereço de E-mail *</label>
+                <input
+                  type="email"
+                  value={userFormEmail}
+                  onChange={(e) => setUserFormEmail(e.target.value)}
+                  placeholder="email@exemplo.com"
+                  required
+                  className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 text-white rounded-xl outline-none focus:border-[#C62828]/50"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-neutral-400 uppercase">
+                  {editingUserId ? "Nova Senha (deixe em branco para não alterar)" : "Senha de Acesso *"}
+                </label>
+                <input
+                  type="password"
+                  value={userFormPassword}
+                  onChange={(e) => setUserFormPassword(e.target.value)}
+                  placeholder={editingUserId ? "Preencha apenas para mudar" : "Senha de 6+ dígitos"}
+                  required={!editingUserId}
+                  className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 text-white rounded-xl outline-none focus:border-[#C62828]/50"
+                />
+              </div>
+
+              {currentRole === UserRole.ADMIN ? (
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-neutral-400 uppercase">Nível de Permissão (Role) *</label>
+                  <select
+                    value={userFormRole}
+                    onChange={(e) => setUserFormRole(e.target.value as any)}
+                    className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 text-white rounded-xl outline-none focus:border-[#C62828]/50"
+                  >
+                    <option value={UserRole.MEMBER}>Membro</option>
+                    <option value={UserRole.LEADER}>Líder de Célula</option>
+                    <option value={UserRole.ADMIN}>Administrador</option>
+                  </select>
+                </div>
+              ) : (
+                <div className="space-y-1 bg-[#1B1B1B] p-3 rounded-xl border border-white/5">
+                  <div className="text-[9px] font-bold text-neutral-400 uppercase">Nível de Permissão</div>
+                  <div className="text-xs font-bold text-neutral-200 mt-1">Membro (Lock)</div>
+                  <div className="text-[9px] text-neutral-500 mt-0.5">Líderes de célula só podem criar contas do tipo Membro.</div>
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-neutral-400 uppercase">Telefone / WhatsApp</label>
+                <input
+                  type="text"
+                  value={userFormPhone}
+                  onChange={(e) => setUserFormPhone(e.target.value)}
+                  placeholder="(11) 99999-9999"
+                  className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 text-white rounded-xl outline-none focus:border-[#C62828]/50"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-neutral-400 uppercase">Data de Nascimento</label>
+                <input
+                  type="date"
+                  value={userFormBirthDate}
+                  onChange={(e) => setUserFormBirthDate(e.target.value)}
+                  className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 text-white rounded-xl outline-none focus:border-[#C62828]/50"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-neutral-400 uppercase">Célula / Grupo de Vínculo</label>
+                <input
+                  type="text"
+                  value={userFormCellGroup}
+                  onChange={(e) => setUserFormCellGroup(e.target.value)}
+                  placeholder="Ex: Célula Koinonia"
+                  className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 text-white rounded-xl outline-none focus:border-[#C62828]/50"
+                />
+              </div>
+
+              {editingUserId && (currentRole === UserRole.ADMIN || currentRole === UserRole.LEADER) && (
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-neutral-400 uppercase">Pontuação no Ranking</label>
+                  <input
+                    type="number"
+                    value={userFormPoints}
+                    onChange={(e) => setUserFormPoints(Number(e.target.value))}
+                    className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 text-white rounded-xl outline-none focus:border-[#C62828]/50"
+                  />
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                {editingUserId && (
+                  <button
+                    type="button"
+                    onClick={cancelEditUser}
+                    className="flex-1 py-2.5 bg-[#353535] text-white text-xs font-bold rounded-xl hover:bg-[#404040] transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-[#C62828] text-white text-xs font-bold rounded-xl hover:bg-red-700 transition-colors shadow-md"
+                >
+                  {editingUserId ? "Salvar" : "Cadastrar"}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* USER LIST TABLE */}
+          <div className="lg:col-span-2 bg-[#252525] rounded-3xl p-6 border border-white/5 shadow-xl space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-white/5">
+              <h3 className="font-display text-sm font-bold text-white flex items-center gap-1.5">
+                <Users className="h-4.5 w-4.5 text-[#C62828]" />
+                <span>Membros & Líderes Cadastrados</span>
+              </h3>
+              <button
+                onClick={fetchUsersList}
+                className="text-[10px] text-neutral-400 hover:text-white font-mono bg-white/5 py-1 px-3.5 rounded-lg border border-white/5 transition-colors"
+              >
+                Atualizar Lista
+              </button>
+            </div>
+
+            {usersLoading ? (
+              <div className="py-12 text-center text-xs text-neutral-400 font-mono">
+                Carregando banco de dados de usuários...
+              </div>
+            ) : usersList.length === 0 ? (
+              <div className="py-12 text-center text-xs text-neutral-400">
+                Nenhum usuário gerenciado sob o seu nível de acesso.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-neutral-300">
+                  <thead>
+                    <tr className="text-[10px] text-neutral-400 uppercase tracking-wider border-b border-white/5 font-bold">
+                      <th className="py-2.5">Nome / Email</th>
+                      <th className="py-2.5 text-center">Permissão</th>
+                      <th className="py-2.5">Vínculo</th>
+                      <th className="py-2.5 text-center">Pontos</th>
+                      <th className="py-2.5 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {usersList.map((user) => (
+                      <tr key={user.id} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3 pr-2">
+                          <div className="flex items-center gap-2.5">
+                            <div className="h-7 w-7 rounded-full bg-neutral-800 text-white text-[10px] font-black flex items-center justify-center uppercase select-none">
+                              {user.name.slice(0, 2)}
+                            </div>
+                            <div>
+                              <div className="font-bold text-white">{user.name}</div>
+                              <div className="text-[10px] text-neutral-400 font-mono">{user.email}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 text-center">
+                          {user.role === UserRole.ADMIN ? (
+                            <span className="bg-red-500/10 border border-red-500/20 text-red-500 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">
+                              Admin
+                            </span>
+                          ) : user.role === UserRole.LEADER ? (
+                            <span className="bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">
+                              Líder
+                            </span>
+                          ) : (
+                            <span className="bg-neutral-500/10 border border-neutral-500/20 text-neutral-400 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">
+                              Membro
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3">
+                          <div className="font-semibold text-neutral-200">{user.cellGroup || "Sem Célula"}</div>
+                          <div className="text-[10px] text-neutral-400 font-mono">{user.phone || "Sem Telefone"}</div>
+                        </td>
+                        <td className="py-3 text-center font-mono font-bold text-neutral-100">
+                          {user.points || 0} xp
+                        </td>
+                        <td className="py-3 text-right space-x-1.5">
+                          <button
+                            onClick={() => startEditUser(user)}
+                            className="bg-white/5 hover:bg-[#C62828] hover:text-white text-neutral-300 py-1 px-2.5 rounded-lg border border-white/5 transition-all text-[10px] font-bold"
+                          >
+                            Editar
+                          </button>
+                          {user.email !== "nauham86@gmail.com" && (
+                            <button
+                              onClick={() => handleDeleteUser(user.id)}
+                              className="bg-red-950/15 text-red-400 border border-red-950/30 hover:bg-red-600 hover:text-white py-1 px-2.5 rounded-lg transition-all text-[10px] font-bold"
+                            >
+                              Excluir
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

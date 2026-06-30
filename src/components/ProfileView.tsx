@@ -10,9 +10,10 @@ import { UserProfile } from "../types";
 interface ProfileViewProps {
   activeUser: UserProfile;
   onUpdateProfile: (name: string, phone: string, email: string, cellGroup: string, birthDate: string) => void;
+  onLogout: () => void;
 }
 
-export default function ProfileView({ activeUser, onUpdateProfile }: ProfileViewProps) {
+export default function ProfileView({ activeUser, onUpdateProfile, onLogout }: ProfileViewProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(activeUser.name);
   const [phone, setPhone] = useState(activeUser.phone);
@@ -45,11 +46,9 @@ export default function ProfileView({ activeUser, onUpdateProfile }: ProfileView
         
         <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
           <div className="relative shrink-0">
-            <img
-              src={activeUser.avatarUrl}
-              alt={activeUser.name}
-              className="h-24 w-24 rounded-full object-cover border-4 border-[#C62828] shadow-2xl"
-            />
+            <div className="h-24 w-24 rounded-full bg-[#C62828] text-white flex items-center justify-center font-display text-2xl font-black uppercase shadow-2xl border-4 border-white/10">
+              {activeUser.name.slice(0, 2)}
+            </div>
             <div className="absolute -bottom-1 -right-1 bg-[#C62828] text-white p-1.5 rounded-full shadow-lg">
               <Sparkles className="h-4 w-4" />
             </div>
@@ -75,12 +74,20 @@ export default function ProfileView({ activeUser, onUpdateProfile }: ProfileView
             </div>
           </div>
 
-          <button
-            onClick={() => setIsEditing(!isEditing)}
-            className="rounded-xl border border-white/10 px-5 py-2.5 text-xs font-bold text-white bg-white/5 hover:bg-white/10 transition-colors shrink-0"
-          >
-            {isEditing ? "Cancelar" : "Editar Cadastro"}
-          </button>
+          <div className="flex flex-wrap gap-2 shrink-0">
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className="rounded-xl border border-white/10 px-5 py-2.5 text-xs font-bold text-white bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              {isEditing ? "Cancelar" : "Editar Cadastro"}
+            </button>
+            <button
+              onClick={onLogout}
+              className="rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/20 px-5 py-2.5 text-xs font-bold text-red-400 hover:text-red-300 transition-colors"
+            >
+              Sair da Conta
+            </button>
+          </div>
         </div>
       </section>
 

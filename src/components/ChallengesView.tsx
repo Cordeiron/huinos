@@ -201,7 +201,11 @@ export default function ChallengesView({
                 </div>
 
                 <div className="mt-6">
-                  {submitted ? (
+                  {activeUser.role !== "MEMBER" ? (
+                    <div className="w-full rounded-xl py-2.5 px-3 text-center text-xs font-bold border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                      ⚠️ Apenas Membros participam das gincanas
+                    </div>
+                  ) : submitted ? (
                     <div className="w-full rounded-xl py-2 px-3 text-center text-xs font-bold border flex items-center justify-center gap-1.5 bg-neutral-50 text-neutral-400 dark:bg-neutral-900/30 dark:border-neutral-800">
                       <ShieldCheck className="h-4 w-4" />
                       <span>Desafio Concluído • Status: <span className="uppercase text-red-600 dark:text-red-400">{status}</span></span>
@@ -253,11 +257,9 @@ export default function ChallengesView({
             {sortedRanking[1] && (
               <div className="flex flex-col items-center">
                 <div className="relative">
-                  <img
-                    src={sortedRanking[1].avatarUrl}
-                    alt={sortedRanking[1].name}
-                    className="h-14 w-14 rounded-full border-2 border-slate-300 object-cover"
-                  />
+                  <div className="h-14 w-14 rounded-full border-2 border-slate-300 bg-neutral-200 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 flex items-center justify-center font-display text-xs font-black uppercase">
+                    {sortedRanking[1].name.slice(0, 2)}
+                  </div>
                   <div className="absolute -bottom-1 -right-1 bg-slate-300 text-neutral-800 rounded-full h-5 w-5 flex items-center justify-center font-bold text-xs">
                     2
                   </div>
@@ -279,11 +281,9 @@ export default function ChallengesView({
                   <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-yellow-500 animate-bounce">
                     👑
                   </div>
-                  <img
-                    src={sortedRanking[0].avatarUrl}
-                    alt={sortedRanking[0].name}
-                    className="h-18 w-18 rounded-full border-4 border-amber-400 object-cover shadow-lg"
-                  />
+                  <div className="h-18 w-18 rounded-full border-4 border-amber-400 bg-amber-500/10 text-amber-500 flex items-center justify-center font-display text-sm font-black uppercase shadow-lg">
+                    {sortedRanking[0].name.slice(0, 2)}
+                  </div>
                   <div className="absolute -bottom-1 -right-1 bg-amber-400 text-neutral-900 rounded-full h-6 w-6 flex items-center justify-center font-bold text-xs">
                     1
                   </div>
@@ -302,11 +302,9 @@ export default function ChallengesView({
             {sortedRanking[2] && (
               <div className="flex flex-col items-center">
                 <div className="relative">
-                  <img
-                    src={sortedRanking[2].avatarUrl}
-                    alt={sortedRanking[2].name}
-                    className="h-12 w-12 rounded-full border-2 border-amber-700/60 object-cover"
-                  />
+                  <div className="h-12 w-12 rounded-full border-2 border-amber-700/60 bg-neutral-200 text-amber-700 dark:bg-neutral-800 dark:text-amber-500 flex items-center justify-center font-display text-[11px] font-bold uppercase">
+                    {sortedRanking[2].name.slice(0, 2)}
+                  </div>
                   <div className="absolute -bottom-1 -right-1 bg-amber-700/60 text-white rounded-full h-5 w-5 flex items-center justify-center font-bold text-[10px]">
                     3
                   </div>
@@ -335,11 +333,9 @@ export default function ChallengesView({
               >
                 <div className="flex items-center gap-3 min-w-0">
                   {getMedalIcon(index)}
-                  <img
-                    src={user.avatarUrl}
-                    alt={user.name}
-                    className="h-8 w-8 rounded-full object-cover bg-neutral-100 shrink-0"
-                  />
+                  <div className="h-8 w-8 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 flex items-center justify-center text-[10px] font-black uppercase shrink-0">
+                    {user.name.slice(0, 2)}
+                  </div>
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-neutral-800 dark:text-neutral-100 truncate">
                       {user.name} {user.id === activeUser.id && <span className="text-[9px] font-mono font-bold text-red-600 ml-1">(Você)</span>}

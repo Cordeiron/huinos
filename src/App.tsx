@@ -10,7 +10,6 @@ import {
 
 import Logo from "./components/Logo";
 import Footer from "./components/Footer";
-import RoleSwitcher from "./components/RoleSwitcher";
 import GlobalSearch from "./components/GlobalSearch";
 import NotificationDropdown from "./components/NotificationDropdown";
 
@@ -23,6 +22,9 @@ import SuggestionsView from "./components/SuggestionsView";
 import ChallengesView from "./components/ChallengesView";
 import ProfileView from "./components/ProfileView";
 import AdminDashboard from "./components/AdminDashboard";
+import LoginView from "./components/LoginView";
+
+import { api } from "./lib/api";
 
 import { UserRole, UserProfile, EventItem, NewsItem, PrayerRequest, SuggestionItem, Challenge, ChallengeSubmission, SystemNotification, VerseOfTheWeek, AccessLog } from "./types";
 import {
@@ -45,62 +47,29 @@ export default function App() {
     return localStorage.getItem("huios_active_view") || "Home";
   });
 
-  const [currentRole, setCurrentRole] = useState<UserRole>(() => {
-    return (localStorage.getItem("huios_current_role") as UserRole) || UserRole.MEMBER;
-  });
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+
+  const [currentRole, setCurrentRole] = useState<UserRole>(UserRole.VISITOR);
 
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     return localStorage.getItem("huios_dark_mode") === "true";
   });
 
-  const [events, setEvents] = useState<EventItem[]>(() => {
-    const local = localStorage.getItem("huios_events");
-    return local ? JSON.parse(local) : mockEvents;
-  });
-
-  const [news, setNews] = useState<NewsItem[]>(() => {
-    const local = localStorage.getItem("huios_news");
-    return local ? JSON.parse(local) : mockNews;
-  });
-
-  const [prayers, setPrayers] = useState<PrayerRequest[]>(() => {
-    const local = localStorage.getItem("huios_prayers");
-    return local ? JSON.parse(local) : mockPrayerRequests;
-  });
-
-  const [suggestions, setSuggestions] = useState<SuggestionItem[]>(() => {
-    const local = localStorage.getItem("huios_suggestions");
-    return local ? JSON.parse(local) : mockSuggestions;
-  });
-
-  const [challenges, setChallenges] = useState<Challenge[]>(() => {
-    const local = localStorage.getItem("huios_challenges");
-    return local ? JSON.parse(local) : mockChallenges;
-  });
-
-  const [submissions, setSubmissions] = useState<ChallengeSubmission[]>(() => {
-    const local = localStorage.getItem("huios_submissions");
-    return local ? JSON.parse(local) : mockSubmissions;
-  });
-
-  const [notifications, setNotifications] = useState<SystemNotification[]>(() => {
-    const local = localStorage.getItem("huios_notifications");
-    return local ? JSON.parse(local) : mockNotifications;
-  });
-
-  const [verse, setVerse] = useState<VerseOfTheWeek>(() => {
-    const local = localStorage.getItem("huios_verse");
-    return local ? JSON.parse(local) : initialVerse;
-  });
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [prayers, setPrayers] = useState<PrayerRequest[]>([]);
+  const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [submissions, setSubmissions] = useState<ChallengeSubmission[]>([]);
+  const [notifications, setNotifications] = useState<SystemNotification[]>([]);
+  
+  const [verse, setVerse] = useState<VerseOfTheWeek>(initialVerse);
 
   const [bannerImage, setBannerImage] = useState<string>(() => {
     return localStorage.getItem("huios_banner_image") || "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=1200";
   });
 
-  const [accessLogs, setAccessLogs] = useState<AccessLog[]>(() => {
-    const local = localStorage.getItem("huios_access_logs");
-    return local ? JSON.parse(local) : mockAccessLogs;
-  });
+  const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
 
   // UI state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -114,10 +83,6 @@ export default function App() {
   }, [activeView]);
 
   useEffect(() => {
-    localStorage.setItem("huios_current_role", currentRole);
-  }, [currentRole]);
-
-  useEffect(() => {
     localStorage.setItem("huios_dark_mode", String(darkMode));
     if (darkMode) {
       document.documentElement.classList.add("dark");
@@ -127,342 +92,322 @@ export default function App() {
   }, [darkMode]);
 
   useEffect(() => {
-    localStorage.setItem("huios_events", JSON.stringify(events));
-  }, [events]);
-
-  useEffect(() => {
-    localStorage.setItem("huios_news", JSON.stringify(news));
-  }, [news]);
-
-  useEffect(() => {
-    localStorage.setItem("huios_prayers", JSON.stringify(prayers));
-  }, [prayers]);
-
-  useEffect(() => {
-    localStorage.setItem("huios_suggestions", JSON.stringify(suggestions));
-  }, [suggestions]);
-
-  useEffect(() => {
-    localStorage.setItem("huios_challenges", JSON.stringify(challenges));
-  }, [challenges]);
-
-  useEffect(() => {
-    localStorage.setItem("huios_submissions", JSON.stringify(submissions));
-  }, [submissions]);
-
-  useEffect(() => {
-    localStorage.setItem("huios_notifications", JSON.stringify(notifications));
-  }, [notifications]);
-
-  useEffect(() => {
-    localStorage.setItem("huios_verse", JSON.stringify(verse));
-  }, [verse]);
-
-  useEffect(() => {
     localStorage.setItem("huios_banner_image", bannerImage);
   }, [bannerImage]);
 
+  // Auth initialization on mount
   useEffect(() => {
-    localStorage.setItem("huios_access_logs", JSON.stringify(accessLogs));
-  }, [accessLogs]);
+    const initAuth = async () => {
+      if (api.getToken()) {
+        try {
+          const profile = await api.me();
+          setCurrentUser(profile);
+          setCurrentRole(profile.role);
+        } catch (e) {
+          api.clearToken();
+          setCurrentUser(null);
+          setCurrentRole(UserRole.VISITOR);
+        }
+      } else {
+        setCurrentRole(UserRole.VISITOR);
+      }
+    };
+    initAuth();
+  }, []);
+
+  // Fetch all database contents from server
+  const loadAllData = async () => {
+    try {
+      const evts = await api.getEvents();
+      setEvents(evts);
+
+      const nw = await api.getNews();
+      setNews(nw);
+
+      const anns = await api.getAnnouncements(); // Announcements can be handled locally or shown in events/announcements
+
+      if (api.getToken()) {
+        const prs = await api.getPrayers();
+        setPrayers(prs);
+
+        const sugs = await api.getSuggestions();
+        setSuggestions(sugs);
+
+        const chals = await api.getChallenges();
+        setChallenges(chals);
+
+        const subs = await api.getSubmissions();
+        setSubmissions(subs);
+
+        const notifs = await api.getNotifications();
+        setNotifications(notifs);
+
+        if (currentUser?.role === UserRole.ADMIN || currentRole === UserRole.ADMIN) {
+          const logs = await api.getLogs();
+          setAccessLogs(logs);
+        }
+      }
+    } catch (err) {
+      console.error("Erro de sincronização com o banco de dados:", err);
+    }
+  };
+
+  useEffect(() => {
+    loadAllData();
+  }, [currentRole]);
 
   // Bind active profile dynamically to chosen role for a premium simulated multi-user feel
   const getActiveUser = (): UserProfile => {
-    if (currentRole === UserRole.ADMIN) {
-      return mockUsers[0]; // Gabriel (Admin)
-    } else if (currentRole === UserRole.LEADER) {
-      return mockUsers[1]; // Beatriz (Leader)
-    } else if (currentRole === UserRole.MEMBER) {
-      return mockUsers[2]; // Lucas (Member)
-    } else {
-      // Guest Visitor
-      return {
-        id: "visitor-guest",
-        name: "Visitante Convidado",
-        email: "convidado@huios.com",
-        phone: "(11) 90000-0000",
-        birthDate: "2006-01-01",
-        cellGroup: "Sem célula vinculada",
-        role: UserRole.VISITOR,
-        avatarUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200",
-        points: 0,
-        medals: { gold: 0, silver: 0, bronze: 0 },
-        achievements: []
-      };
+    if (currentUser) {
+      return currentUser;
     }
+    // Guest Visitor
+    return {
+      id: "visitor-guest",
+      name: "Visitante",
+      email: "visitante@huios.com",
+      phone: "(11) 90000-0000",
+      birthDate: "2006-01-01",
+      cellGroup: "Sem célula vinculada",
+      role: UserRole.VISITOR,
+      avatarUrl: "",
+      points: 0,
+      medals: { gold: 0, silver: 0, bronze: 0 },
+      achievements: []
+    };
   };
 
   const activeUser = getActiveUser();
 
   // Log user action helper
   const logAction = (action: string) => {
-    const newLog: AccessLog = {
-      id: `log-${Date.now()}`,
-      userName: activeUser.name,
-      email: activeUser.email,
-      role: activeUser.role,
-      action,
-      timestamp: new Date().toISOString().replace("T", " ").substring(0, 16)
-    };
-    setAccessLogs([newLog, ...accessLogs].slice(0, 50));
+    // Session operations can optionally log locally or write to logs
   };
 
   // --- Handlers for User Interactions ---
 
-  const handleLikeNews = (newsId: string) => {
-    setNews(
-      news.map((n) => {
-        if (n.id === newsId) {
-          const alreadyLiked = n.likedBy.includes(activeUser.id);
-          const updatedLikedBy = alreadyLiked
-            ? n.likedBy.filter((uid) => uid !== activeUser.id)
-            : [...n.likedBy, activeUser.id];
-          return {
-            ...n,
-            likes: alreadyLiked ? n.likes - 1 : n.likes + 1,
-            likedBy: updatedLikedBy
-          };
-        }
-        return n;
-      })
-    );
-    logAction(`Curtiu a notícia ${newsId}`);
+  const handleLikeNews = async (newsId: string) => {
+    try {
+      await api.likeNews(newsId);
+      loadAllData();
+    } catch (err) {
+      console.error("Erro ao curtir notícia:", err);
+    }
   };
 
-  const handleCommentNews = (newsId: string, commentText: string) => {
-    const newComment = {
-      id: `comment-${Date.now()}`,
-      userName: activeUser.name,
-      userAvatar: activeUser.avatarUrl,
-      content: commentText,
-      date: new Date().toLocaleDateString("pt-BR")
-    };
-
-    setNews(
-      news.map((n) => {
-        if (n.id === newsId) {
-          return {
-            ...n,
-            comments: [...n.comments, newComment]
-          };
-        }
-        return n;
-      })
-    );
-    logAction(`Comentou na notícia ${newsId}`);
+  const handleCommentNews = async (newsId: string, commentText: string) => {
+    try {
+      await api.commentNews(newsId, commentText);
+      loadAllData();
+    } catch (err) {
+      console.error("Erro ao comentar notícia:", err);
+    }
   };
 
-  const handlePrayAlong = (prayerId: string) => {
-    setPrayers(
-      prayers.map((p) => {
-        if (p.id === prayerId) {
-          const alreadyPrayed = p.prayedBy.includes(activeUser.id);
-          const updatedPrayedBy = alreadyPrayed
-            ? p.prayedBy.filter((uid) => uid !== activeUser.id)
-            : [...p.prayedBy, activeUser.id];
-          return {
-            ...p,
-            prayedCount: alreadyPrayed ? p.prayedCount - 1 : p.prayedCount + 1,
-            prayedBy: updatedPrayedBy
-          };
-        }
-        return p;
-      })
-    );
-    logAction(`Uniu-se em oração no clamor ${prayerId}`);
+  const handlePrayAlong = async (prayerId: string) => {
+    try {
+      await api.prayAlong(prayerId);
+      loadAllData();
+    } catch (err) {
+      console.error("Erro ao apoiar oração:", err);
+    }
   };
 
-  const handleSubmitPrayer = (name: string, requestText: string, isAnonymous: boolean) => {
-    const newPrayer: PrayerRequest = {
-      id: `prayer-${Date.now()}`,
-      name: isAnonymous ? "Anônimo" : name,
-      request: requestText,
-      isAnonymous,
-      date: new Date().toLocaleDateString("pt-BR"),
-      status: "Novo",
-      prayedCount: 0,
-      prayedBy: []
-    };
-    setPrayers([newPrayer, ...prayers]);
-    logAction("Enviou um pedido de oração");
+  const handleSubmitPrayer = async (name: string, requestText: string, isAnonymous: boolean) => {
+    try {
+      await api.createPrayer({
+        name: isAnonymous ? "Anônimo" : name,
+        request: requestText,
+        isAnonymous
+      });
+      loadAllData();
+    } catch (err) {
+      console.error("Erro ao criar oração:", err);
+    }
   };
 
-  const handleSubmitSuggestion = (name: string, category: string, suggestionText: string) => {
-    const newSug: SuggestionItem = {
-      id: `sug-${Date.now()}`,
-      name,
-      email: activeUser.email,
-      suggestion: suggestionText,
-      category: category as any,
-      date: new Date().toLocaleDateString("pt-BR"),
-      status: "Pendente"
-    };
-    setSuggestions([newSug, ...suggestions]);
-    logAction(`Sugeriu uma ideia na categoria ${category}`);
+  const handleSubmitSuggestion = async (name: string, category: string, suggestionText: string) => {
+    try {
+      await api.createSuggestion({
+        name,
+        category,
+        suggestion: suggestionText
+      });
+      loadAllData();
+    } catch (err) {
+      console.error("Erro ao criar sugestão:", err);
+    }
   };
 
-  const handleCompleteChallenge = (challengeId: string, text: string, fileUrl: string, mediaType: "text" | "image" | "video") => {
-    const currentChal = challenges.find((c) => c.id === challengeId);
-    if (!currentChal) return;
-
-    const newSub: ChallengeSubmission = {
-      id: `sub-${Date.now()}`,
-      challengeId,
-      challengeTitle: currentChal.title,
-      userId: activeUser.id,
-      userName: activeUser.name,
-      userAvatar: activeUser.avatarUrl,
-      date: new Date().toLocaleDateString("pt-BR"),
-      text,
-      fileUrl,
-      mediaType,
-      status: "Pendente"
-    };
-
-    setSubmissions([newSub, ...submissions]);
-    logAction(`Submeteu comprovação para o desafio ${challengeId}`);
+  const handleCompleteChallenge = async (challengeId: string, text: string, fileUrl: string, mediaType: "text" | "image" | "video") => {
+    try {
+      await api.submitChallenge({
+        challengeId,
+        text,
+        fileUrl,
+        mediaType
+      });
+      loadAllData();
+    } catch (err) {
+      console.error("Erro ao submeter desafio:", err);
+    }
   };
 
-  const handleUpdateProfile = (name: string, phone: string, email: string, cellGroup: string, birthDate: string) => {
-    // In a real database we would persist this user.
-    // For local mockup we can simply alert and log
-    logAction(`Atualizou perfil: ${name}`);
+  const handleUpdateProfile = async (name: string, phone: string, email: string, cellGroup: string, birthDate: string) => {
+    try {
+      if (currentUser?.id) {
+        const updated = await api.updateUser(currentUser.id, {
+          name,
+          phone,
+          email,
+          cellGroup,
+          birthDate
+        });
+        setCurrentUser(updated);
+        loadAllData();
+      }
+    } catch (err) {
+      console.error("Erro ao atualizar perfil:", err);
+    }
   };
 
   // --- Administrative Handlers ---
 
-  const handleAddNews = (title: string, subtitle: string, content: string, category: any, author: string, coverImage: string) => {
-    const newArt: NewsItem = {
-      id: `news-${Date.now()}`,
-      title,
-      subtitle,
-      content,
-      coverImage,
-      author,
-      authorRole: "Coordenação HUIOS",
-      date: new Date().toLocaleDateString("pt-BR"),
-      likes: 0,
-      likedBy: [],
-      comments: [],
-      category
-    };
-    setNews([newArt, ...news]);
-    logAction(`Cadastrou notícia: ${title}`);
+  const handleAddNews = async (title: string, subtitle: string, content: string, category: any, author: string, coverImage: string) => {
+    try {
+      await api.createNews({
+        title,
+        subtitle,
+        content,
+        category,
+        author,
+        coverImage
+      });
+      loadAllData();
+    } catch (err) {
+      console.error("Erro ao adicionar notícia:", err);
+    }
   };
 
-  const handleDeleteNews = (id: string) => {
-    setNews(news.filter((n) => n.id !== id));
-    logAction(`Excluiu notícia ${id}`);
+  const handleDeleteNews = async (id: string) => {
+    try {
+      await api.deleteNews(id);
+      loadAllData();
+    } catch (err) {
+      console.error("Erro ao excluir notícia:", err);
+    }
   };
 
-  const handleAddEvent = (title: string, description: string, date: string, time: string, address: string, category: any, responsible: string, mapEmbedUrl?: string, imageUrl?: string) => {
-    const newEvt: EventItem = {
-      id: `event-${Date.now()}`,
-      title,
-      description,
-      date,
-      time,
-      address,
-      mapEmbedUrl,
-      responsible,
-      category,
-      imageUrl: imageUrl || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=800"
-    };
-    setEvents([newEvt, ...events]);
-    logAction(`Criou evento: ${title}`);
+  const handleAddEvent = async (title: string, description: string, date: string, time: string, address: string, category: any, responsible: string, mapEmbedUrl?: string, imageUrl?: string) => {
+    try {
+      await api.createEvent({
+        title,
+        description,
+        date,
+        time,
+        address,
+        category,
+        responsible,
+        mapEmbedUrl,
+        imageUrl
+      });
+      loadAllData();
+    } catch (err) {
+      console.error("Erro ao adicionar evento:", err);
+    }
   };
 
-  const handleDeleteEvent = (id: string) => {
-    setEvents(events.filter((e) => e.id !== id));
-    logAction(`Excluiu evento ${id}`);
+  const handleDeleteEvent = async (id: string) => {
+    try {
+      await api.deleteEvent(id);
+      loadAllData();
+    } catch (err) {
+      console.error("Erro ao excluir evento:", err);
+    }
   };
 
-  const handleAddChallenge = (title: string, description: string, startDate: string, endDate: string, prize: string, maxWinners: number, points: number, imageUrl: string) => {
-    const newChal: Challenge = {
-      id: `chal-${Date.now()}`,
-      title,
-      description,
-      imageUrl,
-      startDate,
-      endDate,
-      prize,
-      maxWinners,
-      points,
-      active: true
-    };
-    setChallenges([newChal, ...challenges]);
-    logAction(`Criou desafio: ${title}`);
+  const handleAddChallenge = async (title: string, description: string, startDate: string, endDate: string, prize: string, maxWinners: number, points: number, imageUrl: string) => {
+    try {
+      await api.createChallenge({
+        title,
+        description,
+        startDate,
+        endDate,
+        prize,
+        maxWinners,
+        points,
+        imageUrl
+      });
+      loadAllData();
+    } catch (err) {
+      console.error("Erro ao adicionar desafio:", err);
+    }
   };
 
-  const handleApproveSubmission = (subId: string, feedback: string) => {
-    setSubmissions(
-      submissions.map((sub) => {
-        if (sub.id === subId) {
-          return { ...sub, status: "Aprovado", feedback };
-        }
-        return sub;
-      })
-    );
-    logAction(`Aprovou envio ${subId}`);
+  const handleApproveSubmission = async (subId: string, feedback: string) => {
+    try {
+      await api.reviewSubmission(subId, "Aprovado", feedback);
+      loadAllData();
+    } catch (err) {
+      console.error("Erro ao aprovar comprovação:", err);
+    }
   };
 
-  const handleRejectSubmission = (subId: string, feedback: string) => {
-    setSubmissions(
-      submissions.map((sub) => {
-        if (sub.id === subId) {
-          return { ...sub, status: "Reprovado", feedback };
-        }
-        return sub;
-      })
-    );
-    logAction(`Reprovou envio ${subId}`);
+  const handleRejectSubmission = async (subId: string, feedback: string) => {
+    try {
+      await api.reviewSubmission(subId, "Reprovado", feedback);
+      loadAllData();
+    } catch (err) {
+      console.error("Erro ao reprovar comprovação:", err);
+    }
   };
 
-  const handleReplyPrayer = (prayerId: string, adminResponse: string, status: any) => {
-    setPrayers(
-      prayers.map((p) => {
-        if (p.id === prayerId) {
-          return { ...p, adminResponse, status };
-        }
-        return p;
-      })
-    );
-    logAction(`Moderou pedido de oração ${prayerId}: status ${status}`);
+  const handleReplyPrayer = async (prayerId: string, adminResponse: string, status: any) => {
+    try {
+      await api.respondPrayer(prayerId, status, adminResponse);
+      loadAllData();
+    } catch (err) {
+      console.error("Erro ao responder oração:", err);
+    }
   };
 
-  const handleReplySuggestion = (sugId: string, adminResponse: string, status: any) => {
-    setSuggestions(
-      suggestions.map((s) => {
-        if (s.id === sugId) {
-          return { ...s, adminResponse, status };
-        }
-        return s;
-      })
-    );
-    logAction(`Moderou sugestão ${sugId}: status ${status}`);
+  const handleReplySuggestion = async (sugId: string, adminResponse: string, status: any) => {
+    try {
+      await api.respondSuggestion(sugId, status, adminResponse);
+      loadAllData();
+    } catch (err) {
+      console.error("Erro ao responder sugestão:", err);
+    }
   };
 
-  const handleSendNotification = (title: string, message: string, type: any) => {
-    const newNotif: SystemNotification = {
-      id: `not-${Date.now()}`,
-      title,
-      message,
-      date: new Date().toLocaleDateString("pt-BR"),
-      type,
-      read: false
-    };
-    setNotifications([newNotif, ...notifications]);
-    logAction(`Disparou notificação geral: ${title}`);
+  const handleSendNotification = async (title: string, message: string, type: any) => {
+    try {
+      await api.request("/api/notifications", {
+        method: "POST",
+        body: JSON.stringify({ title, message, type })
+      });
+      loadAllData();
+    } catch (err) {
+      console.error("Erro ao disparar notificação:", err);
+    }
   };
 
-  const handleUpdateSettings = (verseText: string, verseRef: string, bannerUrl: string) => {
-    setVerse({
-      text: verseText,
-      reference: verseRef,
-      translation: "Almeida Revista e Corrigida"
-    });
-    setBannerImage(bannerUrl);
-    logAction("Atualizou configurações visuais do portal");
+  const handleUpdateSettings = async (verseText: string, verseRef: string, bannerUrl: string) => {
+    try {
+      await api.request("/api/settings", {
+        method: "PUT",
+        body: JSON.stringify({ verseText, verseRef, bannerUrl })
+      });
+      setVerse({
+        text: verseText,
+        reference: verseRef,
+        translation: "Almeida Revista e Corrigida"
+      });
+      setBannerImage(bannerUrl);
+      loadAllData();
+    } catch (err) {
+      console.error("Erro ao atualizar configurações:", err);
+    }
   };
 
   // Global Navigation callback from subcomponents
@@ -473,8 +418,30 @@ export default function App() {
     }
   };
 
+  const handleLoginSuccess = (user: any, token: string) => {
+    setCurrentUser(user);
+    setCurrentRole(user.role);
+    loadAllData();
+  };
+
+  const handleLogout = () => {
+    api.clearToken();
+    setCurrentUser(null);
+    setCurrentRole(UserRole.VISITOR);
+    setActiveView("Home");
+  };
+
   // --- Render Active View Core Switcher ---
   const renderActiveView = () => {
+    const isPrivateView = ["Pedidos de Oração", "Desafio Jovem", "Sugestões", "Perfil", "Admin"].includes(activeView);
+    if (isPrivateView && currentRole === UserRole.VISITOR) {
+      return (
+        <div className="max-w-md mx-auto py-12">
+          <LoginView onLoginSuccess={handleLoginSuccess} />
+        </div>
+      );
+    }
+
     switch (activeView) {
       case "Sobre":
         return <AboutView />;
@@ -523,11 +490,13 @@ export default function App() {
           <ProfileView
             activeUser={activeUser}
             onUpdateProfile={handleUpdateProfile}
+            onLogout={handleLogout}
           />
         );
       case "Admin":
         return (
           <AdminDashboard
+            currentRole={currentRole}
             stats={{
               membersCount: 124,
               prayersCount: prayers.length,
@@ -571,15 +540,25 @@ export default function App() {
     }
   };
 
-  const navLinks = [
-    { id: "Home", label: "Início" },
-    { id: "Sobre", label: "Sobre" },
-    { id: "Agenda", label: "Agenda" },
-    { id: "Notícias", label: "Notícias" },
-    { id: "Pedidos de Oração", label: "Pedidos de Oração" },
-    { id: "Desafio Jovem", label: "Desafio Jovem" },
-    { id: "Sugestões", label: "Sugestões" }
-  ];
+  const getNavLinksByRole = () => {
+    const base = [
+      { id: "Home", label: "Início" },
+      { id: "Sobre", label: "Sobre" },
+      { id: "Agenda", label: "Agenda" },
+      { id: "Notícias", label: "Notícias" }
+    ];
+    if (currentRole === UserRole.VISITOR) {
+      return base;
+    }
+    return [
+      ...base,
+      { id: "Pedidos de Oração", label: "Pedidos de Oração" },
+      { id: "Desafio Jovem", label: "Desafio Jovem" },
+      { id: "Sugestões", label: "Sugestões" }
+    ];
+  };
+
+  const navLinks = getNavLinksByRole();
 
   const unreadNotifications = notifications.filter((n) => !n.read).length;
 
@@ -675,15 +654,18 @@ export default function App() {
               />
             </div>
 
-            {/* Profile Avatar Trigger */}
+            {/* Profile Avatar Trigger (No Photo representation - elegant initials circle) */}
             {currentRole !== UserRole.VISITOR && (
               <button
                 onClick={() => setActiveView("Perfil")}
                 className={`h-8 w-8 rounded-full overflow-hidden border-2 transition-all ${
                   activeView === "Perfil" ? "border-red-600 scale-105" : "border-transparent"
                 }`}
+                title="Meu Perfil"
               >
-                <img src={activeUser.avatarUrl} alt="Perfil" className="h-full w-full object-cover" />
+                <div className="h-full w-full bg-red-600 text-white text-[11px] font-black flex items-center justify-center uppercase tracking-tighter">
+                  {activeUser.name.slice(0, 2)}
+                </div>
               </button>
             )}
 
@@ -752,16 +734,6 @@ export default function App() {
         challenges={challenges}
         verse={verse}
         onNavigateTo={handleNavigateFromSearch}
-      />
-
-      {/* 5. Floating Glassmorphic Role Simulator Switcher */}
-      <RoleSwitcher
-        currentRole={currentRole}
-        onChangeRole={(role) => {
-          setCurrentRole(role);
-          logAction(`Simulou papel de permissão: ${role}`);
-        }}
-        activeUserName={activeUser.name}
       />
     </div>
   );

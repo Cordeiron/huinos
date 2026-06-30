@@ -166,11 +166,9 @@ export default function NewsView({
 
             {/* Post comment form */}
             <form onSubmit={handleCommentSubmit} className="flex gap-3">
-              <img
-                src={activeUser.avatarUrl}
-                alt={activeUser.name}
-                className="h-9 w-9 rounded-full object-cover shrink-0"
-              />
+              <div className="h-9 w-9 rounded-full bg-red-600 text-white flex items-center justify-center text-xs font-black uppercase shrink-0">
+                {activeUser.name.slice(0, 2)}
+              </div>
               <div className="flex-1 relative flex items-center">
                 <input
                   type="text"
@@ -198,11 +196,9 @@ export default function NewsView({
               ) : (
                 activeArticle.comments.map((comment) => (
                   <div key={comment.id} className="flex gap-3">
-                    <img
-                      src={comment.userAvatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=50"}
-                      alt={comment.userName}
-                      className="h-8 w-8 rounded-full object-cover shrink-0"
-                    />
+                    <div className="h-8 w-8 rounded-full bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 flex items-center justify-center text-[10px] font-bold uppercase shrink-0">
+                      {comment.userName.slice(0, 2)}
+                    </div>
                     <div className="flex-1 rounded-xl bg-neutral-50 dark:bg-neutral-900/40 p-3 border border-neutral-100/50 dark:border-neutral-800/50">
                       <div className="flex justify-between items-center mb-1">
                         <span className="font-display text-[10px] font-bold text-neutral-800 dark:text-neutral-200">{comment.userName}</span>
