@@ -1,17 +1,17 @@
 import { supabase } from "./supabase";
-import { 
-  UserProfile, 
-  UserRole, 
-  EventItem, 
-  NewsItem, 
-  Announcement, 
-  PrayerRequest, 
-  SuggestionItem, 
-  Challenge, 
-  ChallengeSubmission, 
-  SystemNotification, 
-  AccessLog 
-} from "../src/types";
+import {
+  UserProfile,
+  UserRole,
+  EventItem,
+  NewsItem,
+  Announcement,
+  PrayerRequest,
+  SuggestionItem,
+  Challenge,
+  ChallengeSubmission,
+  SystemNotification,
+  AccessLog
+} from "../../src/types";
 
 // ====================================================================
 // MAPPING HELPER FUNCTIONS
@@ -338,7 +338,7 @@ export const db = {
       .from("users")
       .select("*")
       .order("name", { ascending: true });
-    
+
     if (error) {
       console.error("Erro ao buscar usuários do Supabase:", error);
       return [];

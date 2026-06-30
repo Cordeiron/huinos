@@ -3,7 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { db } from "./server/db.ts";
+import { db } from "./api/server/db";
 import { UserRole } from "./src/types";
 
 const JWT_SECRET = process.env.JWT_SECRET || "huios-production-secret-key-2026-987241";
