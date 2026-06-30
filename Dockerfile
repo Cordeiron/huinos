@@ -1,5 +1,5 @@
 # Estágio 1: Build da aplicação
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 WORKDIR /app
 
 # Copia os arquivos de dependências
@@ -13,7 +13,7 @@ COPY . .
 RUN npm run build
 
 # Estágio 2: Execução leve em produção
-FROM node:20-alpine
+FROM node:24-alpine
 WORKDIR /app
 
 COPY package*.json ./
