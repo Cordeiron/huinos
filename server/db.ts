@@ -11,7 +11,7 @@ import {
   ChallengeSubmission,
   SystemNotification,
   AccessLog
-} from "../../src/types";
+} from "../src/types.ts";
 
 // ====================================================================
 // MAPPING HELPER FUNCTIONS
