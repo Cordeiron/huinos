@@ -70,6 +70,7 @@ export default function App() {
   });
 
   const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
 
   // UI state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -146,15 +147,42 @@ export default function App() {
           const logs = await api.getLogs();
           setAccessLogs(logs);
         }
+
+        // Load all users for dashboard stats
+        const allUsers = await api.getUsers();
+        setUsers(allUsers);
       }
     } catch (err) {
       console.error("Erro de sincronização com o banco de dados:", err);
     }
   };
 
+  // Fetch all data when role changes (login/logout)
   useEffect(() => {
     loadAllData();
   }, [currentRole]);
+
+  // Load settings (verse + banner) from database on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await api.request("/api/settings");
+        if (settings) {
+          setVerse({
+            text: settings.verseText || initialVerse.text,
+            reference: settings.verseReference || initialVerse.reference,
+            translation: settings.verseTranslation || initialVerse.translation
+          });
+          if (settings.bannerUrl) {
+            setBannerImage(settings.bannerUrl);
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao carregar configurações do servidor:", err);
+      }
+    };
+    loadSettings();
+  }, []);
 
   // Bind active profile dynamically to chosen role for a premium simulated multi-user feel
   const getActiveUser = (): UserProfile => {
@@ -396,7 +424,7 @@ export default function App() {
     try {
       await api.request("/api/settings", {
         method: "PUT",
-        body: JSON.stringify({ verseText, verseRef, bannerUrl })
+        body: JSON.stringify({ verseText, verseReference: verseRef, bannerUrl })
       });
       setVerse({
         text: verseText,
@@ -482,7 +510,7 @@ export default function App() {
             challenges={challenges}
             submissions={submissions}
             activeUser={activeUser}
-            rankingUsers={mockUsers}
+            rankingUsers={users.length > 0 ? users : mockUsers}
             onCompleteChallenge={handleCompleteChallenge}
           />
         );
@@ -507,7 +535,7 @@ export default function App() {
           <AdminDashboard
             currentRole={currentRole}
             stats={{
-              membersCount: 124,
+              membersCount: users.length,
               prayersCount: prayers.length,
               newsCount: news.length,
               eventsCount: events.length,
@@ -652,13 +680,30 @@ export default function App() {
                 notifications={notifications}
                 isOpen={isNotifOpen}
                 onToggle={() => setIsNotifOpen(false)}
-                onMarkAsRead={(id) => {
-                  setNotifications(notifications.map((n) => (n.id === id ? { ...n, read: true } : n)));
+                onMarkAsRead={async (id) => {
+                  try {
+                    await api.markNotificationRead(id);
+                    setNotifications(notifications.map((n) => (n.id === id ? { ...n, read: true } : n)));
+                  } catch (err) {
+                    console.error("Erro ao marcar notificação como lida:", err);
+                  }
                 }}
-                onMarkAllAsRead={() => {
-                  setNotifications(notifications.map((n) => ({ ...n, read: true })));
+                onMarkAllAsRead={async () => {
+                  try {
+                    await api.readAllNotifications();
+                    setNotifications(notifications.map((n) => ({ ...n, read: true })));
+                  } catch (err) {
+                    console.error("Erro ao marcar notificações como lidas:", err);
+                  }
                 }}
-                onClearAll={() => setNotifications([])}
+                onClearAll={async () => {
+                  try {
+                    await api.deleteAllNotifications();
+                    setNotifications([]);
+                  } catch (err) {
+                    console.error("Erro ao limpar notificações:", err);
+                  }
+                }}
                 onNavigateTo={setActiveView}
               />
             </div>

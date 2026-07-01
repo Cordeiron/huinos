@@ -849,6 +849,19 @@ export const db = {
     return mapNotificationFromDb(data);
   },
 
+  async markNotificationRead(id: string): Promise<boolean> {
+    const { error } = await supabase
+      .from("notifications")
+      .update({ read: true })
+      .eq("id", id);
+
+    if (error) {
+      console.error(`Erro ao marcar notificação (${id}) como lida no Supabase:`, error);
+      return false;
+    }
+    return true;
+  },
+
   async markAllNotificationsRead(): Promise<boolean> {
     const { error } = await supabase
       .from("notifications")
@@ -860,6 +873,83 @@ export const db = {
       return false;
     }
     return true;
+  },
+
+  async deleteNotification(id: string): Promise<boolean> {
+    const { error } = await supabase
+      .from("notifications")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error(`Erro ao deletar notificação (${id}) no Supabase:`, error);
+      return false;
+    }
+    return true;
+  },
+
+  async deleteAllNotifications(): Promise<boolean> {
+    const { error } = await supabase
+      .from("notifications")
+      .delete()
+      .neq("id", "__nonexistent__"); // Delete all
+
+    if (error) {
+      console.error("Erro ao limpar notificações no Supabase:", error);
+      return false;
+    }
+    return true;
+  },
+
+  // --- SETTINGS ---
+  async getSettings(): Promise<any | null> {
+    const { data, error } = await supabase
+      .from("settings")
+      .select("*")
+      .eq("id", "global-1")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Erro ao buscar configurações do Supabase:", error);
+      return null;
+    }
+
+    if (!data) return null;
+    return {
+      id: data.id,
+      verseText: data.verse_text || "",
+      verseReference: data.verse_reference || "",
+      verseTranslation: data.verse_translation || "Almeida Revista e Corrigida",
+      bannerUrl: data.banner_url || ""
+    };
+  },
+
+  async updateSettings(updates: any): Promise<any> {
+    const dbPayload: any = {};
+    if (updates.verseText !== undefined) dbPayload.verse_text = updates.verseText;
+    if (updates.verseReference !== undefined) dbPayload.verse_reference = updates.verseReference;
+    if (updates.verseTranslation !== undefined) dbPayload.verse_translation = updates.verseTranslation;
+    if (updates.bannerUrl !== undefined) dbPayload.banner_url = updates.bannerUrl;
+
+    const { data, error } = await supabase
+      .from("settings")
+      .update(dbPayload)
+      .eq("id", "global-1")
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Erro ao atualizar configurações no Supabase:", error);
+      throw new Error(error.message);
+    }
+
+    return {
+      id: data.id,
+      verseText: data.verse_text || "",
+      verseReference: data.verse_reference || "",
+      verseTranslation: data.verse_translation || "Almeida Revista e Corrigida",
+      bannerUrl: data.banner_url || ""
+    };
   },
 
   // --- ACCESS LOGS ---

@@ -240,6 +240,24 @@ export const api = {
     return this.request("/api/notifications");
   },
 
+  async markNotificationRead(id: string) {
+    return this.request(`/api/notifications/${id}/read`, {
+      method: "PATCH",
+    });
+  },
+
+  async deleteNotification(id: string) {
+    return this.request(`/api/notifications/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  async deleteAllNotifications() {
+    return this.request("/api/notifications", {
+      method: "DELETE",
+    });
+  },
+
   async readAllNotifications() {
     return this.request("/api/notifications/read-all", {
       method: "POST",

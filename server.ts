@@ -933,12 +933,121 @@ async function startServer() {
     }
   });
 
+  app.post("/api/notifications", authenticateToken, async (req: any, res: any) => {
+    try {
+      const { role, name } = req.user;
+      if (role !== UserRole.ADMIN && role !== UserRole.LEADER) {
+        return res.status(403).json({ error: "Permissão insuficiente" });
+      }
+
+      const { title, message, type } = req.body;
+      if (!title || !message || !type) {
+        return res.status(400).json({ error: "Campos obrigatórios ausentes" });
+      }
+
+      const newNotif = {
+        id: "not-" + Math.random().toString(36).substr(2, 9),
+        title,
+        message,
+        date: new Date().toISOString().split("T")[0],
+        type,
+        read: false
+      };
+
+      const created = await db.createNotification(newNotif);
+
+      await db.logAction(
+        name,
+        req.user.email,
+        role,
+        `Enviou notificação: ${title}`
+      );
+
+      res.status(201).json(created);
+    } catch (err: any) {
+      console.error("Erro ao criar notificação:", err);
+      res.status(500).json({ error: "Erro interno no servidor" });
+    }
+  });
+
+  app.patch("/api/notifications/:id/read", authenticateToken, async (req: any, res: any) => {
+    try {
+      const { id } = req.params;
+      await db.markNotificationRead(id);
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("Erro ao marcar notificação como lida:", err);
+      res.status(500).json({ error: "Erro interno no servidor" });
+    }
+  });
+
+  app.delete("/api/notifications/:id", authenticateToken, async (req: any, res: any) => {
+    try {
+      const { id } = req.params;
+      await db.deleteNotification(id);
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("Erro ao deletar notificação:", err);
+      res.status(500).json({ error: "Erro interno no servidor" });
+    }
+  });
+
+  app.delete("/api/notifications", authenticateToken, async (req: any, res: any) => {
+    try {
+      await db.deleteAllNotifications();
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("Erro ao limpar notificações:", err);
+      res.status(500).json({ error: "Erro interno no servidor" });
+    }
+  });
+
   app.post("/api/notifications/read-all", authenticateToken, async (req, res) => {
     try {
       await db.markAllNotificationsRead();
       res.json({ success: true });
     } catch (err: any) {
       console.error("Erro ao limpar notificações:", err);
+      res.status(500).json({ error: "Erro interno no servidor" });
+    }
+  });
+
+  // --- SETTINGS (Verse, Banner, etc.) ---
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const settings = await db.getSettings();
+      if (!settings) {
+        return res.json({
+          verseText: "Ninguém despreze a tua mocidade; mas sê o exemplo dos fiéis, na palavra, no trato, no amor, no espírito, na fé, na pureza.",
+          verseReference: "1 Timóteo 4:12",
+          verseTranslation: "Almeida Revista e Corrigida",
+          bannerUrl: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=1200"
+        });
+      }
+      res.json(settings);
+    } catch (err: any) {
+      console.error("Erro ao buscar configurações:", err);
+      res.status(500).json({ error: "Erro ao buscar configurações" });
+    }
+  });
+
+  app.put("/api/settings", authenticateToken, async (req: any, res: any) => {
+    try {
+      const { role } = req.user;
+      if (role !== UserRole.ADMIN && role !== UserRole.LEADER) {
+        return res.status(403).json({ error: "Permissão insuficiente" });
+      }
+
+      const { verseText, verseReference, bannerUrl } = req.body;
+      const updates: any = {};
+      if (verseText !== undefined) updates.verseText = verseText;
+      if (verseReference !== undefined) updates.verseReference = verseReference;
+      if (bannerUrl !== undefined) updates.bannerUrl = bannerUrl;
+
+      const updated = await db.updateSettings(updates);
+      res.json(updated);
+    } catch (err: any) {
+      console.error("Erro ao atualizar configurações:", err);
       res.status(500).json({ error: "Erro interno no servidor" });
     }
   });

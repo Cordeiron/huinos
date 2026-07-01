@@ -150,7 +150,27 @@ CREATE TABLE notifications (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 10. ACCESS LOGS TABLE
+-- 10. SETTINGS TABLE (Global system settings: verse, banner, etc)
+CREATE TABLE settings (
+  id TEXT PRIMARY KEY,
+  verse_text TEXT NOT NULL DEFAULT '',
+  verse_reference TEXT NOT NULL DEFAULT '',
+  verse_translation TEXT NOT NULL DEFAULT 'Almeida Revista e Corrigida',
+  banner_url TEXT NOT NULL DEFAULT '',
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Insert default settings row
+INSERT INTO settings (id, verse_text, verse_reference, verse_translation, banner_url)
+VALUES (
+  'global-1',
+  'Ninguém despreze a tua mocidade; mas sê o exemplo dos fiéis, na palavra, no trato, no amor, no espírito, na fé, na pureza.',
+  '1 Timóteo 4:12',
+  'Almeida Revista e Corrigida',
+  'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=1200'
+);
+
+-- 11. ACCESS LOGS TABLE
 CREATE TABLE access_logs (
   id TEXT PRIMARY KEY,
   user_name TEXT NOT NULL,
