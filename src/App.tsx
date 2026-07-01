@@ -128,6 +128,13 @@ export default function App() {
       const anns = await api.getAnnouncements(); // Announcements can be handled locally or shown in events/announcements
 
       if (api.getToken()) {
+        try {
+          const profile = await api.me();
+          setCurrentUser(profile);
+        } catch (err) {
+          console.error("Erro ao recarregar perfil do usuário:", err);
+        }
+
         const prs = await api.getPrayers();
         setPrayers(prs);
 
@@ -481,7 +488,7 @@ export default function App() {
           </div>
         );
       case "Sobre":
-        return <AboutView />;
+        return <AboutView currentRole={currentRole} />;
       case "Agenda":
         return <ScheduleView events={events} />;
       case "Notícias":
@@ -572,6 +579,7 @@ export default function App() {
             verse={verse}
             bannerImage={bannerImage}
             onNavigateTo={handleNavigateFromSearch}
+            prayers={prayers}
           />
         );
     }

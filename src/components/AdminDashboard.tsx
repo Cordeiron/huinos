@@ -72,6 +72,33 @@ export default function AdminDashboard({
 
   // User management states
   const [usersList, setUsersList] = useState<any[]>([]);
+
+  // Calculation of birthdays today
+  const getBirthdaysToday = () => {
+    const today = new Date();
+    const todayMonth = String(today.getMonth() + 1).padStart(2, "0");
+    const todayDay = String(today.getDate()).padStart(2, "0");
+    const matchMD = `${todayMonth}-${todayDay}`;
+
+    return usersList.filter((u: any) => {
+      if (!u.birthDate) return false;
+      let birthMD = "";
+      if (u.birthDate.includes("-")) {
+        const parts = u.birthDate.split("-");
+        if (parts.length >= 3) {
+          birthMD = `${parts[1]}-${parts[2]}`;
+        }
+      } else if (u.birthDate.includes("/")) {
+        const parts = u.birthDate.split("/");
+        if (parts.length >= 2) {
+          birthMD = `${parts[1]}-${parts[0]}`;
+        }
+      }
+      return birthMD === matchMD;
+    });
+  };
+
+  const birthdaysToday = getBirthdaysToday();
   const [usersLoading, setUsersLoading] = useState(false);
   const [userFormName, setUserFormName] = useState("");
   const [userFormEmail, setUserFormEmail] = useState("");
@@ -202,8 +229,12 @@ export default function AdminDashboard({
 
   // Auto-correct active tab if restricted for Leader
   React.useEffect(() => {
-    if (currentRole !== UserRole.ADMIN) {
+    if (currentRole !== UserRole.ADMIN && currentRole !== UserRole.LEADER) {
       if (activeTab === "challenges" || activeTab === "prayers" || activeTab === "suggestions") {
+        setActiveTab("dashboard");
+      }
+    } else if (currentRole !== UserRole.ADMIN) {
+      if (activeTab === "prayers" || activeTab === "suggestions") {
         setActiveTab("dashboard");
       }
     }
@@ -342,9 +373,11 @@ export default function AdminDashboard({
           { id: "users", label: "Usuários", icon: Users },
           { id: "news", label: "Notícias", icon: FileText },
           { id: "events", label: "Agenda", icon: Calendar },
+          ...(currentRole === UserRole.ADMIN || currentRole === UserRole.LEADER
+            ? [{ id: "challenges", label: "Desafios", icon: Award }]
+            : []),
           ...(currentRole === UserRole.ADMIN
             ? [
-                { id: "challenges", label: "Desafios", icon: Award },
                 { id: "prayers", label: "Pedidos Oração", icon: Heart },
                 { id: "suggestions", label: "Sugestões", icon: Lightbulb }
               ]
@@ -400,13 +433,13 @@ export default function AdminDashboard({
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-            {/* Elegant SVG visual chart representation */}
-            <div className="lg:col-span-7 bg-[#252525] rounded-3xl p-6 border border-white/5 shadow-lg space-y-4 relative overflow-hidden flex flex-col justify-between">
+            {/* Elegant SVG visual chart representation (lg:col-span-5) */}
+            <div className="lg:col-span-5 bg-[#252525] rounded-3xl p-6 border border-white/5 shadow-lg space-y-4 relative overflow-hidden flex flex-col justify-between">
               <div className="absolute top-0 right-0 h-32 w-32 rounded-full bg-[#C62828]/5 blur-3xl pointer-events-none" />
               <div>
                 <h3 className="font-display text-xs font-bold text-white flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-[#C62828]" />
-                  <span>Engajamento Semanal dos Jovens (Histórico)</span>
+                  <span>Engajamento Semanal (Histórico)</span>
                 </h3>
               </div>
               
@@ -439,26 +472,62 @@ export default function AdminDashboard({
                   <text x="430" y="145" fontSize="9" fill="#999">Semana Ativa</text>
                 </svg>
               </div>
-              <p className="text-[10px] text-neutral-400 text-center font-light">Gráfico ilustra o crescimento contínuo de desafios concluídos e interações no sistema HUIOS.</p>
+              <p className="text-[10px] text-neutral-400 text-center font-light">Crescimento contínuo de desafios concluídos e interações no sistema HUIOS.</p>
             </div>
 
-            {/* Access Logs (Right 5) */}
-            <div className="lg:col-span-5 bg-[#252525] rounded-3xl p-6 border border-white/5 shadow-lg space-y-4 flex flex-col">
+            {/* 🎉 Birthdays of the Day (lg:col-span-4) */}
+            <div className="lg:col-span-4 bg-[#252525] rounded-3xl p-6 border border-white/5 shadow-lg space-y-4 flex flex-col">
+              <h3 className="font-display text-xs font-bold text-white flex items-center gap-1.5">
+                <span className="text-base">🎉</span>
+                <span>Aniversariantes do Dia</span>
+              </h3>
+
+              <div className="space-y-3 overflow-y-auto pr-1 flex-1 max-h-64">
+                {birthdaysToday.length === 0 ? (
+                  <div className="text-center py-10 rounded-2xl border border-dashed border-white/5 flex flex-col items-center justify-center h-full">
+                    <span className="text-2xl mb-2">🎂</span>
+                    <p className="text-[10px] text-neutral-400 italic">Nenhum membro faz aniversário hoje.</p>
+                  </div>
+                ) : (
+                  birthdaysToday.map((member) => (
+                    <div key={member.id} className="p-3 bg-[#1B1B1B]/40 border border-white/5 rounded-2xl flex items-center justify-between gap-3 hover:border-[#C62828]/30 transition-all duration-300">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-[#C62828] to-amber-500 text-white flex items-center justify-center text-xs font-black uppercase shrink-0">
+                          {member.name.slice(0, 2)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">{member.name}</p>
+                          <p className="text-[9px] text-neutral-400 mt-0.5 truncate">{member.cellGroup || "Sem célula"}</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end shrink-0">
+                        <span className="text-xs">🎈</span>
+                        <span className="text-[8px] font-bold text-amber-400 uppercase tracking-wider font-mono">PARABÉNS!</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              <p className="text-[9px] text-neutral-500 text-center italic">Gerado automaticamente a partir do cadastro de membros.</p>
+            </div>
+
+            {/* Access Logs (Right column, lg:col-span-3) */}
+            <div className="lg:col-span-3 bg-[#252525] rounded-3xl p-6 border border-white/5 shadow-lg space-y-4 flex flex-col">
               <h3 className="font-display text-xs font-bold text-white flex items-center gap-1.5">
                 <Clock className="h-4.5 w-4.5 text-[#C62828]" />
-                <span>Auditoria de Logs de Acesso Recentes</span>
+                <span>Auditoria de Acessos</span>
               </h3>
 
               <div className="space-y-3 max-h-64 overflow-y-auto pr-1 flex-1">
                 {accessLogs.map((log) => (
                   <div key={log.id} className="text-[10px] border-b border-white/5 pb-2.5 flex justify-between items-start last:border-0 last:pb-0">
                     <div>
-                      <p className="font-bold text-white">
-                        {log.userName} <span className="font-normal text-neutral-400">({log.role})</span>
+                      <p className="font-bold text-white truncate max-w-[120px]">
+                        {log.userName}
                       </p>
-                      <p className="text-neutral-400 mt-1">{log.action}</p>
+                      <p className="text-neutral-400 mt-0.5 text-[9px]">{log.action}</p>
                     </div>
-                    <span className="font-mono text-neutral-500 shrink-0">{log.timestamp}</span>
+                    <span className="font-mono text-neutral-500 text-[8px] shrink-0">{log.timestamp}</span>
                   </div>
                 ))}
               </div>

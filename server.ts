@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -34,8 +35,8 @@ async function startServer() {
   };
 
   // --- HEALTH CHECK ---
-  app.get("/api/health", async (req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString()});
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
   // --- AUTH ROUTES ---
@@ -98,7 +99,7 @@ async function startServer() {
   });
 
   // --- USER MANAGEMENT (RBAC SERVER-SIDE PROTECTION) ---
-
+  
   // 1. Get Users
   app.get("/api/users", authenticateToken, async (req: any, res: any) => {
     try {
@@ -112,9 +113,9 @@ async function startServer() {
         // Admin sees everyone
         return res.json(profiles);
       } else if (role === UserRole.LEADER) {
-        // Leader sees members they created + themselves
+        // Leader sees all members + themselves
         const filtered = profiles.filter(
-          u => u.id === id || (u.createdBy === id && u.role === UserRole.MEMBER)
+          u => u.id === id || u.role === UserRole.MEMBER
         );
         return res.json(filtered);
       } else {
@@ -137,7 +138,7 @@ async function startServer() {
       if (!name || !email || !password || !role) {
         return res.status(400).json({ error: "Campos obrigatórios ausentes" });
       }
-
+      
       // Check if email already exists
       const existingUser = await db.getUserByEmail(email);
       if (existingUser) {
@@ -156,7 +157,7 @@ async function startServer() {
 
       const salt = bcrypt.genSaltSync(10);
       const passwordHash = bcrypt.hashSync(password, salt);
-
+      
       const newUser = {
         id: "user-" + Math.random().toString(36).substr(2, 9),
         name,
@@ -347,7 +348,7 @@ async function startServer() {
       };
 
       const created = await db.createAnnouncement(newAnn);
-
+      
       // Add a system notification
       const newNotif = {
         id: "not-" + Math.random().toString(36).substr(2, 9),
@@ -898,7 +899,7 @@ async function startServer() {
         if (user && challenge) {
           const currentPoints = (user.points || 0) + challenge.points;
           const medals = { ...user.medals };
-
+          
           // Add a medal occasionally or systematically
           if (currentPoints >= 400 && medals.gold === 0) {
             medals.gold += 1;
@@ -933,75 +934,6 @@ async function startServer() {
     }
   });
 
-  app.post("/api/notifications", authenticateToken, async (req: any, res: any) => {
-    try {
-      const { role, name } = req.user;
-      if (role !== UserRole.ADMIN && role !== UserRole.LEADER) {
-        return res.status(403).json({ error: "Permissão insuficiente" });
-      }
-
-      const { title, message, type } = req.body;
-      if (!title || !message || !type) {
-        return res.status(400).json({ error: "Campos obrigatórios ausentes" });
-      }
-
-      const newNotif = {
-        id: "not-" + Math.random().toString(36).substr(2, 9),
-        title,
-        message,
-        date: new Date().toISOString().split("T")[0],
-        type,
-        read: false
-      };
-
-      const created = await db.createNotification(newNotif);
-
-      await db.logAction(
-        name,
-        req.user.email,
-        role,
-        `Enviou notificação: ${title}`
-      );
-
-      res.status(201).json(created);
-    } catch (err: any) {
-      console.error("Erro ao criar notificação:", err);
-      res.status(500).json({ error: "Erro interno no servidor" });
-    }
-  });
-
-  app.patch("/api/notifications/:id/read", authenticateToken, async (req: any, res: any) => {
-    try {
-      const { id } = req.params;
-      await db.markNotificationRead(id);
-      res.json({ success: true });
-    } catch (err: any) {
-      console.error("Erro ao marcar notificação como lida:", err);
-      res.status(500).json({ error: "Erro interno no servidor" });
-    }
-  });
-
-  app.delete("/api/notifications/:id", authenticateToken, async (req: any, res: any) => {
-    try {
-      const { id } = req.params;
-      await db.deleteNotification(id);
-      res.json({ success: true });
-    } catch (err: any) {
-      console.error("Erro ao deletar notificação:", err);
-      res.status(500).json({ error: "Erro interno no servidor" });
-    }
-  });
-
-  app.delete("/api/notifications", authenticateToken, async (req: any, res: any) => {
-    try {
-      await db.deleteAllNotifications();
-      res.json({ success: true });
-    } catch (err: any) {
-      console.error("Erro ao limpar notificações:", err);
-      res.status(500).json({ error: "Erro interno no servidor" });
-    }
-  });
-
   app.post("/api/notifications/read-all", authenticateToken, async (req, res) => {
     try {
       await db.markAllNotificationsRead();
@@ -1012,42 +944,50 @@ async function startServer() {
     }
   });
 
-  // --- SETTINGS (Verse, Banner, etc.) ---
-  app.get("/api/settings", async (req, res) => {
+  // --- ABOUT PAGE (LEADERS & GALLERY) ---
+  app.get("/api/about", async (req, res) => {
     try {
-      const settings = await db.getSettings();
-      if (!settings) {
-        return res.json({
-          verseText: "Ninguém despreze a tua mocidade; mas sê o exemplo dos fiéis, na palavra, no trato, no amor, no espírito, na fé, na pureza.",
-          verseReference: "1 Timóteo 4:12",
-          verseTranslation: "Almeida Revista e Corrigida",
-          bannerUrl: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=1200"
-        });
+      const p = path.join(process.cwd(), "server/about_data.json");
+      if (fs.existsSync(p)) {
+        const data = fs.readFileSync(p, "utf-8");
+        return res.json(JSON.parse(data));
       }
-      res.json(settings);
-    } catch (err: any) {
-      console.error("Erro ao buscar configurações:", err);
-      res.status(500).json({ error: "Erro ao buscar configurações" });
+      return res.status(404).json({ error: "Dados do Sobre não encontrados" });
+    } catch (err) {
+      console.error("Erro ao carregar sobre:", err);
+      res.status(500).json({ error: "Erro interno no servidor" });
     }
   });
 
-  app.put("/api/settings", authenticateToken, async (req: any, res: any) => {
+  app.put("/api/about", authenticateToken, async (req: any, res: any) => {
     try {
       const { role } = req.user;
-      if (role !== UserRole.ADMIN && role !== UserRole.LEADER) {
-        return res.status(403).json({ error: "Permissão insuficiente" });
+      const { leaders, gallery } = req.body;
+      const p = path.join(process.cwd(), "server/about_data.json");
+
+      let currentData = { leaders: [], gallery: [] };
+      if (fs.existsSync(p)) {
+        currentData = JSON.parse(fs.readFileSync(p, "utf-8"));
       }
 
-      const { verseText, verseReference, bannerUrl } = req.body;
-      const updates: any = {};
-      if (verseText !== undefined) updates.verseText = verseText;
-      if (verseReference !== undefined) updates.verseReference = verseReference;
-      if (bannerUrl !== undefined) updates.bannerUrl = bannerUrl;
+      if (leaders !== undefined) {
+        if (role !== UserRole.ADMIN) {
+          return res.status(403).json({ error: "Apenas Administradores podem alterar as informações de liderança" });
+        }
+        currentData.leaders = leaders;
+      }
 
-      const updated = await db.updateSettings(updates);
-      res.json(updated);
-    } catch (err: any) {
-      console.error("Erro ao atualizar configurações:", err);
+      if (gallery !== undefined) {
+        if (role !== UserRole.ADMIN && role !== UserRole.LEADER) {
+          return res.status(403).json({ error: "Apenas Administradores ou Líderes podem gerenciar a galeria" });
+        }
+        currentData.gallery = gallery;
+      }
+
+      fs.writeFileSync(p, JSON.stringify(currentData, null, 2), "utf-8");
+      res.json(currentData);
+    } catch (err) {
+      console.error("Erro ao atualizar sobre:", err);
       res.status(500).json({ error: "Erro interno no servidor" });
     }
   });

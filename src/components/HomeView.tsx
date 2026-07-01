@@ -4,8 +4,8 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { ArrowRight, Calendar, Heart, ShieldAlert, Award, ChevronRight, Volume2, Share2, Sparkles } from "lucide-react";
-import { EventItem, NewsItem, VerseOfTheWeek } from "../types";
+import { ArrowRight, Calendar, Heart, ShieldAlert, Award, ChevronRight, Volume2, Share2, Sparkles, Music } from "lucide-react";
+import { EventItem, NewsItem, VerseOfTheWeek, PrayerRequest } from "../types";
 
 interface HomeViewProps {
   events: EventItem[];
@@ -13,11 +13,36 @@ interface HomeViewProps {
   verse: VerseOfTheWeek;
   onNavigateTo: (view: string, itemId?: string) => void;
   bannerImage: string;
+  prayers: PrayerRequest[];
 }
 
-export default function HomeView({ events, news, verse, onNavigateTo, bannerImage }: HomeViewProps) {
+export default function HomeView({ events, news, verse, onNavigateTo, bannerImage, prayers }: HomeViewProps) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [nextEvent, setNextEvent] = useState<EventItem | null>(null);
+  const [prayerOffset, setPrayerOffset] = useState(0);
+
+  useEffect(() => {
+    // Rotation dynamic every 1 hour (3600000 ms)
+    const interval = setInterval(() => {
+      setPrayerOffset(prev => prev + 1);
+    }, 60 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatTimeAgo = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      if (isNaN(diffDays) || diffDays < 0) return "Recentemente";
+      if (diffDays === 0) return "Hoje";
+      if (diffDays === 1) return "Ontem";
+      return `${diffDays}d atrás`;
+    } catch (e) {
+      return "Recentemente";
+    }
+  };
 
   // Determine the next event chronologically and run the countdown
   useEffect(() => {
@@ -51,6 +76,49 @@ export default function HomeView({ events, news, verse, onNavigateTo, bannerImag
   }, [events]);
 
   const latestArticles = news.slice(0, 2);
+
+  // Filter active/relevant prayers, or fallback to default ones if empty
+  const activePrayers = prayers && prayers.length > 0 
+    ? prayers.filter(p => p.status === "Em oração" || p.status === "Novo")
+    : [];
+    
+  const displayPrayersList = activePrayers.length > 0 ? activePrayers : (prayers && prayers.length > 0 ? prayers : []);
+
+  const getDisplayedPrayers = () => {
+    if (displayPrayersList.length === 0) {
+      // Fallback default static prayers
+      return [
+        {
+          id: "fallback-1",
+          name: "Anônimo",
+          request: "Peço oração pela saúde da minha família e por direcionamento profissional...",
+          date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          status: "Em oração",
+          isAnonymous: true
+        },
+        {
+          id: "fallback-2",
+          name: "Gabriel M.",
+          request: "Agradecimento pela aprovação no vestibular e pedido de sabedoria.",
+          date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          status: "Respondido",
+          isAnonymous: false
+        }
+      ];
+    }
+    
+    // Rotate 2 items starting from prayerOffset modulo list length
+    const len = displayPrayersList.length;
+    const idx1 = prayerOffset % len;
+    const idx2 = (prayerOffset + 1) % len;
+    
+    if (len === 1) {
+      return [displayPrayersList[0]];
+    }
+    return [displayPrayersList[idx1], displayPrayersList[idx2]];
+  };
+
+  const displayedPrayers = getDisplayedPrayers();
 
   return (
     <div id="home-view-container" className="space-y-6 pb-16">
@@ -187,53 +255,43 @@ export default function HomeView({ events, news, verse, onNavigateTo, bannerImag
           </div>
         </div>
 
-        {/* 5. Sua Célula / Informativos (col-span-4) */}
-        <div className="lg:col-span-4 bg-gradient-to-tr from-[#1B1B1B] to-[#252525] rounded-3xl p-6 border border-white/5 flex flex-col justify-between min-h-[300px]">
+        {/* 5. Spotify do Huios (col-span-4) */}
+        <a 
+          href="https://open.spotify.com" 
+          target="_blank" 
+          rel="noreferrer"
+          className="lg:col-span-4 bg-gradient-to-tr from-[#121212] via-[#1C1C1C] to-[#1ED760]/10 rounded-3xl p-6 border border-[#1ED760]/20 flex flex-col justify-between min-h-[300px] hover:border-[#1ED760]/50 transition-all duration-300 group cursor-pointer"
+        >
           <div>
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h4 className="text-neutral-500 text-[10px] font-bold uppercase tracking-widest">Sua Célula</h4>
-                <p className="font-display text-xl font-black text-white mt-0.5">Célula Kairós</p>
+                <h4 className="text-[#1ED760] text-[10px] font-extrabold uppercase tracking-widest">Playlist Oficial</h4>
+                <p className="font-display text-xl font-black text-white mt-0.5 group-hover:text-[#1ED760] transition-colors">Spotify Huios</p>
               </div>
-              <div className="p-2 bg-white/5 rounded-lg text-[#C62828]">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" strokeWidth="2"/>
-                </svg>
+              <div className="p-2.5 bg-[#1ED760]/10 rounded-xl text-[#1ED760] group-hover:bg-[#1ED760]/20 transition-all">
+                <Music className="h-5 w-5" />
               </div>
             </div>
-            <div className="space-y-2 mt-4 text-xs text-neutral-400">
-              <p className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#C62828]" /> Quinta-feira, às 19:30
-              </p>
-              <p className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#C62828]" /> Av. das Palmeiras, 450
-              </p>
+            <p className="text-xs text-neutral-400 mt-4 leading-relaxed font-light">
+              Ouça os louvores que cantamos em nossos encontros, ministrações gravadas e playlists selecionadas para edificar o seu devocional diário.
+            </p>
+          </div>
+          <div className="mt-6 space-y-4">
+            <div className="flex items-center gap-3 bg-[#1ED760]/5 border border-[#1ED760]/10 rounded-2xl p-3">
+              <div className="w-8 h-8 rounded-full bg-[#1ED760] flex items-center justify-center text-black font-black">
+                ▶
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-white truncate">Louvor & Adoração HUIOS</p>
+                <p className="text-[10px] text-[#1ED760] font-medium font-mono">Disponível no Spotify</p>
+              </div>
+            </div>
+            <div className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-[#1ED760] text-xs font-black text-black py-2.5 hover:bg-[#1db954] transition-all">
+              <span>Ouvir no Spotify</span>
+              <ArrowRight className="h-4 w-4" />
             </div>
           </div>
-          <div className="mt-6">
-            <div className="flex -space-x-2 mb-4">
-              <div className="w-7 h-7 rounded-full border border-neutral-900 bg-neutral-600 overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100" className="object-cover h-full w-full" alt="" />
-              </div>
-              <div className="w-7 h-7 rounded-full border border-neutral-900 bg-neutral-500 overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=100" className="object-cover h-full w-full" alt="" />
-              </div>
-              <div className="w-7 h-7 rounded-full border border-neutral-900 bg-neutral-700 overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&q=80&w=100" className="object-cover h-full w-full" alt="" />
-              </div>
-              <div className="w-7 h-7 rounded-full border border-neutral-900 bg-[#C62828] flex items-center justify-center text-[9px] font-black text-white">
-                +12
-              </div>
-            </div>
-            <button
-              onClick={() => onNavigateTo("Agenda")}
-              className="w-full flex items-center justify-center gap-1 w-full rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-neutral-300 py-2.5 hover:bg-white/10"
-            >
-              <span>Localizar Célula</span>
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+        </a>
 
         {/* 6. Latest News (col-span-5) */}
         <div className="lg:col-span-5 bg-[#252525] rounded-3xl p-6 border border-white/5 flex flex-col justify-between">
@@ -294,29 +352,29 @@ export default function HomeView({ events, news, verse, onNavigateTo, bannerImag
           <div>
             <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-1.5">
               <span>🙏 Em Oração</span>
+              <span className="text-[9px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-mono animate-pulse">Rotativo</span>
             </h3>
             <div className="space-y-3">
-              <div className="p-3 bg-[#1B1B1B] rounded-2xl border border-white/5">
-                <p className="text-[10px] text-[#C62828] font-bold mb-0.5">Anônimo</p>
-                <p className="text-xs text-neutral-300 line-clamp-3 italic font-light leading-relaxed">
-                  "Peço oração pela saúde da minha família e por direcionamento profissional..."
-                </p>
-                <div className="mt-2.5 flex items-center justify-between text-[8px] text-neutral-500 font-mono">
-                  <span>2h atrás</span>
-                  <span className="bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded uppercase">Intercedendo</span>
+              {displayedPrayers.map((p: any) => (
+                <div key={p.id} className="p-3 bg-[#1B1B1B] rounded-2xl border border-white/5 transition-all duration-500 hover:scale-[1.02]">
+                  <p className="text-[10px] text-[#C62828] font-bold mb-0.5">
+                    {p.isAnonymous || !p.name ? "Anônimo" : p.name}
+                  </p>
+                  <p className="text-xs text-neutral-300 line-clamp-3 italic font-light leading-relaxed">
+                    "{p.request}"
+                  </p>
+                  <div className="mt-2.5 flex items-center justify-between text-[8px] text-neutral-500 font-mono">
+                    <span>{formatTimeAgo(p.date)}</span>
+                    <span className={`px-1.5 py-0.5 rounded uppercase ${
+                      p.status === "Respondido" 
+                        ? "bg-blue-500/10 text-blue-400" 
+                        : "bg-emerald-500/10 text-emerald-400"
+                    }`}>
+                      {p.status || "Intercedendo"}
+                    </span>
+                  </div>
                 </div>
-              </div>
-
-              <div className="p-3 bg-[#1B1B1B] rounded-2xl border border-white/5">
-                <p className="text-[10px] text-[#C62828] font-bold mb-0.5">Gabriel M.</p>
-                <p className="text-xs text-neutral-300 line-clamp-3 italic font-light leading-relaxed">
-                  "Agradecimento pela aprovação no vestibular e pedido de sabedoria."
-                </p>
-                <div className="mt-2.5 flex items-center justify-between text-[8px] text-neutral-500 font-mono">
-                  <span>Ontem</span>
-                  <span className="bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded uppercase">Respondido</span>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 

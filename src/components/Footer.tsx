@@ -5,7 +5,7 @@
 
 import React from "react";
 import Logo from "./Logo";
-import { MessageSquare, Instagram, Facebook, Mail, MapPin, Smartphone, ShieldCheck, Heart } from "lucide-react";
+import { MessageSquare, Instagram, Mail, MapPin, ShieldCheck, Heart } from "lucide-react";
 
 interface FooterProps {
   onNavigateTo: (view: string) => void;
@@ -25,28 +25,12 @@ export default function Footer({ onNavigateTo }: FooterProps) {
           </p>
           <div className="flex gap-3 pt-2">
             <a
-              href="https://wa.me/5511987654321"
-              target="_blank"
-              rel="noreferrer"
-              className="p-2 rounded-xl bg-neutral-800 hover:bg-red-600 text-white transition-colors"
-            >
-              <Smartphone className="h-4 w-4" />
-            </a>
-            <a
-              href="https://instagram.com"
+              href="https://www.instagram.com/mocidade_huios"
               target="_blank"
               rel="noreferrer"
               className="p-2 rounded-xl bg-neutral-800 hover:bg-red-600 text-white transition-colors"
             >
               <Instagram className="h-4 w-4" />
-            </a>
-            <a
-              href="https://facebook.com"
-              target="_blank"
-              rel="noreferrer"
-              className="p-2 rounded-xl bg-neutral-800 hover:bg-red-600 text-white transition-colors"
-            >
-              <Facebook className="h-4 w-4" />
             </a>
             <a
               href="mailto:contato@huios.com"

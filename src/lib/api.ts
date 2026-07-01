@@ -264,6 +264,18 @@ export const api = {
     });
   },
 
+  // --- About Page ---
+  async getAbout() {
+    return this.request("/api/about");
+  },
+
+  async updateAbout(aboutData: any) {
+    return this.request("/api/about", {
+      method: "PUT",
+      body: JSON.stringify(aboutData),
+    });
+  },
+
   // --- Logs ---
   async getLogs() {
     return this.request("/api/logs");

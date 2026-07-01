@@ -1,0 +1,28 @@
+{
+  "leaders": [
+    {
+      "name": "Pr. Daniel Lemos",
+      "role": "Pastor Geral de Jovens",
+      "bio": "Bacharel em Teologia pelo Seminário Bíblico Nacional, apaixonado por discipulado de jovens e mentoria de novas lideranças na igreja local.",
+      "image": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=300"
+    },
+    {
+      "name": "Gabriel Santos",
+      "role": "Coordenador de Células & Social",
+      "bio": "Formado em Administração, gerencia as células HUIOS e lidera as frentes de apoio social em comunidades carentes de São Paulo.",
+      "image": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=300"
+    },
+    {
+      "name": "Beatriz Oliveira",
+      "role": "Líder de Comunicação & Mídia",
+      "bio": "Designer de Produto com foco em interfaces digitais. Responsável por garantir a excelência visual e a identidade premium das mídias HUIOS.",
+      "image": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=300"
+    }
+  ],
+  "gallery": [
+    { "title": "Culto Start HUIOS", "url": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=400" },
+    { "title": "Comunhão nas Casas", "url": "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&q=80&w=400" },
+    { "title": "Ação Social HUIOS", "url": "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&q=80&w=400" },
+    { "title": "Gincana e Integração", "url": "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&q=80&w=400" }
+  ]
+}
