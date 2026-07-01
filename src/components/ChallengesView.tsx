@@ -55,10 +55,11 @@ export default function ChallengesView({
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedChallenge) return;
+    if (!responseText.trim()) return;
 
     onCompleteChallenge(
       selectedChallenge.id,
-      responseText,
+      responseText.trim(),
       mediaUrl.trim(),
       mediaUrl.trim() ? "image" : "text"
     );

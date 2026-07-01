@@ -955,6 +955,41 @@ async function startServer() {
     }
   });
 
+  // --- SETTINGS (VERSE AND BANNER) ---
+  app.get("/api/settings", async (req, res) => {
+    try {
+      let settings = await db.getSettings();
+      if (!settings) {
+        settings = {
+          id: "global-1",
+          verseText: "Ninguém despreze a tua mocidade; mas sê o exemplo dos fiéis, na palavra, no trato, no amor, no espírito, na fé, na pureza.",
+          verseReference: "1 Timóteo 4:12",
+          verseTranslation: "Almeida Revista e Corrigida",
+          bannerUrl: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=1200"
+        };
+      }
+      res.json(settings);
+    } catch (err) {
+      console.error("Erro ao carregar configurações:", err);
+      res.status(500).json({ error: "Erro interno no servidor" });
+    }
+  });
+
+  app.put("/api/settings", authenticateToken, async (req: any, res: any) => {
+    try {
+      const { role } = req.user;
+      if (role !== UserRole.ADMIN && role !== UserRole.LEADER) {
+        return res.status(403).json({ error: "Apenas Administradores ou Líderes podem alterar as configurações" });
+      }
+      const { verseText, verseReference, verseTranslation, bannerUrl } = req.body;
+      const updated = await db.updateSettings({ verseText, verseReference, verseTranslation, bannerUrl });
+      res.json(updated);
+    } catch (err: any) {
+      console.error("Erro ao atualizar configurações:", err);
+      res.status(500).json({ error: err.message || "Erro interno no servidor" });
+    }
+  });
+
   // --- ABOUT PAGE (LEADERS & GALLERY) ---
   app.get("/api/about", async (req, res) => {
     try {
