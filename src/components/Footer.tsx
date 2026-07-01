@@ -88,17 +88,9 @@ export default function Footer({ onNavigateTo }: FooterProps) {
             <div className="flex items-start gap-2.5">
               <MapPin className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
               <span>
-                Av. das Nações Unidas, 1500, Pinheiros<br />
-                São Paulo - SP, CEP 05425-070
+                Rua Manoel Moreira, 545 - Jardim Insdustrial<br />
+                Contagem - MG, CEP 30640-240
               </span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <Smartphone className="h-4 w-4 text-red-500 shrink-0" />
-              <span>(11) 98765-4321 / Atendimento 24h</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <Mail className="h-4 w-4 text-red-500 shrink-0" />
-              <span>suporte@huios.com</span>
             </div>
           </div>
         </div>
