@@ -114,7 +114,7 @@ export interface ChallengeSubmission {
   text?: string;
   fileUrl?: string; // photo/video simulation
   mediaType?: "image" | "video" | "document" | "text";
-  status: "Pendente" | "Aprovado" | "Reprovado";
+  status: "Pendente" | "Pendente de Aprovação" | "Aprovado" | "Reprovado" | "Rejeitado";
   feedback?: string;
 }
 

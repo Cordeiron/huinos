@@ -59,8 +59,8 @@ export default function ChallengesView({
     onCompleteChallenge(
       selectedChallenge.id,
       responseText,
-      mediaUrl || "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=600",
-      mediaType
+      mediaUrl.trim(),
+      mediaUrl.trim() ? "image" : "text"
     );
 
     setSelectedChallenge(null);
@@ -206,9 +206,18 @@ export default function ChallengesView({
                       ⚠️ Apenas Membros participam das gincanas
                     </div>
                   ) : submitted ? (
-                    <div className="w-full rounded-xl py-2 px-3 text-center text-xs font-bold border flex items-center justify-center gap-1.5 bg-neutral-50 text-neutral-400 dark:bg-neutral-900/30 dark:border-neutral-800">
-                      <ShieldCheck className="h-4 w-4" />
-                      <span>Desafio Concluído • Status: <span className="uppercase text-red-600 dark:text-red-400">{status}</span></span>
+                    <div className={`w-full rounded-xl py-2 px-3 text-center text-xs font-bold border flex flex-col sm:flex-row items-center justify-center gap-1.5 ${
+                      status === "Aprovado"
+                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                        : status === "Rejeitado" || status === "Reprovado"
+                        ? "bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400"
+                        : "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
+                    }`}>
+                      <div className="flex items-center gap-1.5">
+                        <ShieldCheck className="h-4 w-4" />
+                        <span>Desafio Concluído • Status:</span>
+                      </div>
+                      <span className="uppercase font-extrabold">{status}</span>
                     </div>
                   ) : (
                     <button
@@ -407,14 +416,14 @@ export default function ChallengesView({
                       <h4 className="font-display text-xs font-bold text-neutral-800 dark:text-neutral-200">
                         {sub.challengeTitle}
                       </h4>
-                      <span className={`rounded-full px-2.5 py-0.5 text-[8px] font-bold uppercase ${
+                      <span className={`rounded-full px-2.5 py-0.5 text-[8px] font-bold uppercase border ${
                         sub.status === "Aprovado"
-                          ? "bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/20"
-                          : sub.status === "Reprovado"
-                          ? "bg-red-50 text-red-600 border border-red-100 dark:bg-red-950/20 dark:text-red-400"
-                          : "bg-neutral-50 text-neutral-400 border border-neutral-200"
+                          ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/20"
+                          : sub.status === "Reprovado" || sub.status === "Rejeitado"
+                          ? "bg-red-50 text-red-600 border-red-100 dark:bg-red-950/20 dark:text-red-400 dark:border-red-900/20"
+                          : "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/10 dark:text-amber-400 dark:border-amber-900/20"
                       }`}>
-                        {sub.status}
+                        {sub.status || "Pendente de Aprovação"}
                       </span>
                     </div>
 
@@ -422,9 +431,24 @@ export default function ChallengesView({
                       "{sub.text}"
                     </p>
 
+                    {sub.fileUrl && (
+                      <p className="text-[9px] text-neutral-400 flex items-center gap-1">
+                        <span>🔗 Link Comprovante:</span>
+                        <a href={sub.fileUrl} target="_blank" rel="noreferrer" className="text-red-600 dark:text-red-400 hover:underline break-all">
+                          {sub.fileUrl}
+                        </a>
+                      </p>
+                    )}
+
                     {sub.feedback && (
-                      <div className="rounded-xl bg-red-50/50 dark:bg-red-950/10 p-2.5 border border-red-100/40 dark:border-red-900/20 text-[10px] text-neutral-500">
-                        <span className="font-bold text-red-600 dark:text-red-400 block mb-0.5">Retorno do Administrador:</span>
+                      <div className={`rounded-xl p-2.5 border text-[10px] ${
+                        sub.status === "Rejeitado" || sub.status === "Reprovado"
+                          ? "bg-red-50/50 border-red-100/40 text-red-700 dark:bg-red-950/10 dark:border-red-900/20 dark:text-red-400"
+                          : "bg-neutral-50 border-neutral-100 text-neutral-600 dark:bg-neutral-900/40 dark:border-neutral-800 dark:text-neutral-400"
+                      }`}>
+                        <span className="font-bold block mb-0.5">
+                          {sub.status === "Rejeitado" || sub.status === "Reprovado" ? "❌ Motivo da Rejeição:" : "💬 Retorno do Líder:"}
+                        </span>
                         "{sub.feedback}"
                       </div>
                     )}
@@ -454,50 +478,33 @@ export default function ChallengesView({
 
             <form onSubmit={handleFormSubmit} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-neutral-400 uppercase">Sua Reflexão / Texto de Apoio</label>
+                <label className="text-[10px] font-bold text-neutral-400 uppercase">Descrição da Conclusão (Obrigatório)</label>
                 <textarea
                   value={responseText}
                   onChange={(e) => setResponseText(e.target.value)}
                   required
                   rows={4}
-                  placeholder="Escreva sua resposta, reflexão ou anotação espiritual..."
+                  placeholder="Escreva detalhadamente como você concluiu este desafio (mínimo de informações para validação)..."
                   className="w-full py-2 px-3 text-xs bg-neutral-50 dark:bg-neutral-900/60 border border-neutral-200 dark:border-neutral-800 rounded-xl outline-none text-neutral-800 dark:text-neutral-100 focus:border-red-600 resize-none"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-neutral-400 uppercase">Formato de Evidência</label>
-                  <select
-                    value={mediaType}
-                    onChange={(e) => setMediaType(e.target.value as any)}
-                    className="w-full py-2 px-3 text-xs bg-neutral-50 dark:bg-neutral-900/60 border border-neutral-200 dark:border-neutral-800 rounded-xl outline-none text-neutral-800 dark:text-neutral-100 cursor-pointer"
-                  >
-                    <option value="text">Apenas Reflexão Escrita</option>
-                    <option value="image">Link de Foto Comprovante</option>
-                    <option value="video">Link de Vídeo</option>
-                  </select>
-                </div>
-
-                {mediaType !== "text" && (
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-neutral-400 uppercase">URL do Anexo</label>
-                    <input
-                      type="text"
-                      value={mediaUrl}
-                      onChange={(e) => setMediaUrl(e.target.value)}
-                      placeholder="https://..."
-                      className="w-full py-2 px-3 text-xs bg-neutral-50 dark:bg-neutral-900/60 border border-neutral-200 dark:border-neutral-800 rounded-xl outline-none text-neutral-800 dark:text-neutral-100 focus:border-red-600"
-                    />
-                  </div>
-                )}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-neutral-400 uppercase">Link de Comprovação (Opcional)</label>
+                <input
+                  type="url"
+                  value={mediaUrl}
+                  onChange={(e) => setMediaUrl(e.target.value)}
+                  placeholder="Link do YouTube, Instagram, Google Drive, Facebook, etc."
+                  className="w-full py-2 px-3 text-xs bg-neutral-50 dark:bg-neutral-900/60 border border-neutral-200 dark:border-neutral-800 rounded-xl outline-none text-neutral-800 dark:text-neutral-100 focus:border-red-600"
+                />
               </div>
 
               <div className="flex gap-2 pt-2 justify-end">
                 <button
                   type="button"
                   onClick={() => setSelectedChallenge(null)}
-                  className="rounded-xl border border-neutral-200 px-4 py-2 text-xs font-bold text-neutral-500 hover:bg-neutral-50"
+                  className="rounded-xl border border-neutral-200 px-4 py-2 text-xs font-bold text-neutral-500 hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-300"
                 >
                   Cancelar
                 </button>

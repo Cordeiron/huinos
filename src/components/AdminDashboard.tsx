@@ -122,9 +122,9 @@ export default function AdminDashboard({
     }
   };
 
-  // Fetch users when active tab is users or on component mount
+  // Fetch users when active tab is users, dashboard, challenges or on component mount
   React.useEffect(() => {
-    if (activeTab === "users" || activeTab === "dashboard") {
+    if (activeTab === "users" || activeTab === "dashboard" || activeTab === "challenges") {
       fetchUsersList();
     }
   }, [activeTab]);
@@ -905,79 +905,150 @@ export default function AdminDashboard({
             </form>
           </div>
 
-          {/* Review Pending submissions */}
+          {/* Review Pending submissions (Desafios Pendentes) */}
           <div className="bg-[#252525] rounded-3xl p-6 border border-white/5 shadow-xl space-y-4">
-            <h3 className="font-display text-sm font-bold text-white">
-              Moderação de Envios ({submissions.filter((s) => s.status === "Pendente").length} Pendentes)
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-sm font-bold text-white flex items-center gap-1.5">
+                <Award className="h-4.5 w-4.5 text-[#C62828]" />
+                <span>Desafios Pendentes</span>
+              </h3>
+              <span className="rounded-full bg-[#C62828]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#C62828] border border-[#C62828]/20">
+                {submissions.filter((s) => s.status === "Pendente" || s.status === "Pendente de Aprovação").length} Pendentes
+              </span>
+            </div>
 
-            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
-              {submissions.filter((s) => s.status === "Pendente").length === 0 ? (
+            <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+              {submissions.filter((s) => s.status === "Pendente" || s.status === "Pendente de Aprovação").length === 0 ? (
                 <div className="text-center py-12 rounded-2xl border border-dashed border-white/10">
-                  <p className="text-xs text-neutral-400 italic">Nenhum envio pendente de validação. Bom trabalho!</p>
+                  <p className="text-xs text-neutral-400 italic">Nenhum desafio pendente de aprovação. Bom trabalho!</p>
                 </div>
               ) : (
                 submissions
-                  .filter((s) => s.status === "Pendente")
-                  .map((sub) => (
-                    <div key={sub.id} className="p-4 border border-white/5 rounded-2xl space-y-3 bg-[#1B1B1B]/40 text-xs">
-                      <div className="flex items-center gap-2 justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="h-6 w-6 rounded-full bg-red-600/25 text-red-400 flex items-center justify-center text-[9px] font-black uppercase shrink-0">
-                            {sub.userName.slice(0, 2)}
+                  .filter((s) => s.status === "Pendente" || s.status === "Pendente de Aprovação")
+                  .map((sub) => {
+                    // Dynamically resolve cell group for the member
+                    const memberProfile = usersList.find((u) => u.id === sub.userId);
+                    const cellGroup = memberProfile?.cellGroup || "Sem célula";
+
+                    // Format Date & Time beautifully
+                    let displayDate = sub.date;
+                    try {
+                      const d = new Date(sub.date);
+                      if (!isNaN(d.getTime())) {
+                        displayDate = d.toLocaleString("pt-BR", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit"
+                        });
+                      }
+                    } catch (e) {
+                      // fallback to original date string
+                    }
+
+                    return (
+                      <div key={sub.id} className="p-4 border border-white/5 rounded-2xl space-y-4 bg-[#1B1B1B]/40 text-xs hover:border-white/10 transition-colors">
+                        {/* Member Information & Cell Group */}
+                        <div className="flex items-start justify-between gap-2 border-b border-white/5 pb-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-[#C62828] to-red-400 text-white flex items-center justify-center text-xs font-black uppercase shrink-0">
+                              {sub.userName.slice(0, 2)}
+                            </div>
+                            <div>
+                              <p className="font-bold text-white text-xs">{sub.userName}</p>
+                              <p className="text-[9px] text-neutral-400 mt-0.5">Célula: <span className="text-white font-medium">{cellGroup}</span></p>
+                            </div>
                           </div>
-                          <span className="font-bold text-white">{sub.userName}</span>
+                          <div className="text-right shrink-0">
+                            <p className="text-[9px] text-neutral-400 font-mono">{displayDate}</p>
+                            <span className="inline-block rounded-full bg-amber-500/10 px-2 py-0.5 text-[8px] font-bold text-amber-500 border border-amber-500/20 uppercase mt-1">
+                              Aguardando Líder
+                            </span>
+                          </div>
                         </div>
-                        <span className="text-[9px] text-neutral-400 font-mono">{sub.date}</span>
-                      </div>
 
-                      <div className="space-y-1">
-                        <span className="text-[8px] font-bold text-red-400 uppercase block tracking-wider">
-                          Para o desafio: {sub.challengeTitle}
-                        </span>
-                        <p className="text-neutral-300 leading-relaxed italic bg-[#1B1B1B] p-2.5 rounded-xl border border-white/5">
-                          "{sub.text}"
-                        </p>
-                      </div>
+                        {/* Challenge details */}
+                        <div className="space-y-2">
+                          <div>
+                            <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-wider block">
+                              Desafio:
+                            </span>
+                            <p className="text-white font-bold text-xs mt-0.5">{sub.challengeTitle}</p>
+                          </div>
 
-                      {sub.fileUrl && sub.fileUrl !== "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=600" && (
-                        <div className="text-[9px] text-neutral-400 flex items-center gap-1 bg-[#1B1B1B] px-2 py-1 rounded-xl border border-white/5">
-                          Anexo comprovante: <a href={sub.fileUrl} target="_blank" rel="noreferrer" className="text-red-400 font-bold hover:underline">Ver link completo</a>
+                          <div>
+                            <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-wider block">
+                              Texto enviado pelo membro:
+                            </span>
+                            <p className="text-neutral-300 leading-relaxed italic bg-[#1B1B1B] p-3 rounded-xl border border-white/5 mt-1 whitespace-pre-wrap">
+                              "{sub.text}"
+                            </p>
+                          </div>
+
+                          {/* Link informado */}
+                          <div>
+                            <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-wider block mb-1">
+                              Link informado:
+                            </span>
+                            {sub.fileUrl && sub.fileUrl !== "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=600" ? (
+                              <div className="text-[10px] text-neutral-300 flex items-center gap-1.5 bg-[#1B1B1B] px-3 py-2 rounded-xl border border-white/5 hover:border-red-500/20 transition-colors">
+                                <span className="text-red-400">🔗</span>
+                                <a href={sub.fileUrl} target="_blank" rel="noreferrer" className="text-red-400 font-bold hover:underline break-all">
+                                  {sub.fileUrl}
+                                </a>
+                              </div>
+                            ) : (
+                              <p className="text-[10px] text-neutral-500 italic bg-[#1B1B1B] px-3 py-2 rounded-xl border border-white/5">
+                                Nenhum link informado.
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      )}
 
-                      {/* Feedback Form */}
-                      <div className="space-y-2 pt-1">
-                        <input
-                          type="text"
-                          placeholder="Feedback de incentivo (opcional)..."
-                          value={feedbackText[sub.id] || ""}
-                          onChange={(e) => setFeedbackText({ ...feedbackText, [sub.id]: e.target.value })}
-                          className="w-full py-2 px-3 text-[10px] bg-[#1B1B1B] border border-white/5 text-white rounded-lg outline-none focus:border-[#C62828]/40"
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              onApproveSubmission(sub.id, feedbackText[sub.id] || "Ótimo trabalho! Desafio validado com sucesso.");
-                              showToast("Envio aprovado com sucesso!");
-                            }}
-                            className="flex-1 flex items-center justify-center gap-1 rounded-xl bg-emerald-600 text-white font-bold py-2 text-[10px] hover:bg-emerald-700 transition-colors"
-                          >
-                            <Check className="h-3.5 w-3.5" /> Aprovar e dar pontos
-                          </button>
-                          <button
-                            onClick={() => {
-                              onRejectSubmission(sub.id, feedbackText[sub.id] || "Requisitos incompletos. Refaça e envie novamente.");
-                              showToast("Envio reprovado.");
-                            }}
-                            className="flex-1 flex items-center justify-center gap-1 rounded-xl bg-[#C62828] text-white font-bold py-2 text-[10px] hover:bg-red-700 transition-colors"
-                          >
-                            <X className="h-3.5 w-3.5" /> Reprovar
-                          </button>
+                        {/* Actions & Feedback */}
+                        <div className="space-y-3 pt-2 border-t border-white/5">
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-bold text-neutral-400 uppercase block">
+                              Motivo da Rejeição / Feedback de Incentivo
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="Feedback de incentivo para Aprovar ou motivo obrigatório para Rejeitar..."
+                              value={feedbackText[sub.id] || ""}
+                              onChange={(e) => setFeedbackText({ ...feedbackText, [sub.id]: e.target.value })}
+                              className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 text-white rounded-xl outline-none focus:border-[#C62828]/40"
+                            />
+                          </div>
+
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => {
+                                onApproveSubmission(sub.id, feedbackText[sub.id] || "Excelente trabalho! Desafio aprovado com sucesso.");
+                                showToast("Envio aprovado com sucesso!");
+                              }}
+                              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 text-white font-bold py-2.5 text-xs hover:bg-emerald-700 transition-colors shadow-md"
+                            >
+                              <Check className="h-4 w-4" /> Aprovar e dar pontos
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (!feedbackText[sub.id]) {
+                                  showToast("Por favor, preencha o motivo da rejeição no campo acima.");
+                                  return;
+                                }
+                                onRejectSubmission(sub.id, feedbackText[sub.id]);
+                                showToast("Envio rejeitado.");
+                              }}
+                              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-[#C62828] text-white font-bold py-2.5 text-xs hover:bg-red-700 transition-colors shadow-md"
+                            >
+                              <X className="h-4 w-4" /> Rejeitar
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
               )}
             </div>
           </div>

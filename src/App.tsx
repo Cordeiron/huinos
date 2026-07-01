@@ -390,10 +390,10 @@ export default function App() {
 
   const handleRejectSubmission = async (subId: string, feedback: string) => {
     try {
-      await api.reviewSubmission(subId, "Reprovado", feedback);
+      await api.reviewSubmission(subId, "Rejeitado", feedback);
       loadAllData();
     } catch (err) {
-      console.error("Erro ao reprovar comprovação:", err);
+      console.error("Erro ao rejeitar comprovação:", err);
     }
   };
 

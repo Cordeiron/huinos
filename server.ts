@@ -835,9 +835,20 @@ async function startServer() {
         return res.status(403).json({ error: "Apenas membros cadastrados participam das gincanas" });
       }
 
-      const { challengeId, challengeTitle, text, fileUrl, mediaType } = req.body;
-      if (!challengeId || !challengeTitle) {
-        return res.status(400).json({ error: "ID e título do desafio são obrigatórios" });
+      const { challengeId, text, fileUrl, mediaType } = req.body;
+      let { challengeTitle } = req.body;
+
+      if (!challengeId) {
+        return res.status(400).json({ error: "ID do desafio é obrigatório" });
+      }
+
+      // Retrieve challenge to get title if not provided by client
+      const challenge = await db.getChallengeById(challengeId);
+      if (!challenge) {
+        return res.status(404).json({ error: "Desafio não encontrado" });
+      }
+      if (!challengeTitle) {
+        challengeTitle = challenge.title;
       }
 
       // Check if member already has a submission for this challenge
@@ -854,11 +865,11 @@ async function startServer() {
         userId,
         userName,
         userAvatar: "",
-        date: new Date().toISOString().split("T")[0],
+        date: new Date().toISOString(), // Save full ISO timestamp to display date and time
         text: text || "",
         fileUrl: fileUrl || "",
         mediaType: mediaType || "text",
-        status: "Pendente"
+        status: "Pendente de Aprovação"
       };
 
       const created = await db.createSubmission(newSub);
@@ -877,8 +888,8 @@ async function startServer() {
       }
 
       const { status, feedback } = req.body;
-      if (!status || !["Aprovado", "Reprovado"].includes(status)) {
-        return res.status(400).json({ error: "Status inválido. Deve ser Aprovado ou Reprovado" });
+      if (!status || !["Aprovado", "Reprovado", "Rejeitado"].includes(status)) {
+        return res.status(400).json({ error: "Status inválido. Deve ser Aprovado, Reprovado ou Rejeitado" });
       }
 
       const submission = await db.getSubmissionById(req.params.id);
