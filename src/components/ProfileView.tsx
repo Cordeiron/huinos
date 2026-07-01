@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from "react";
-import { User, Phone, Mail, Calendar, Home, Award, Sparkles, Shield, Compass, BookOpen, Users, CheckCircle } from "lucide-react";
+import { User, Phone, Mail, Calendar, Home, Award, Sparkles, Shield, Compass, BookOpen, Users, CheckCircle, Music, Briefcase, Heart, Target, Flame } from "lucide-react";
 import { UserProfile } from "../types";
 
 interface ProfileViewProps {
@@ -30,13 +30,92 @@ export default function ProfileView({ activeUser, onUpdateProfile, onLogout }: P
     setTimeout(() => setShowSuccess(false), 4000);
   };
 
-  const allPossibleBadges = [
-    { id: "ach-1", title: "Primeiros Passos", description: "Completou o primeiro desafio", icon: Compass, color: "text-blue-500 bg-blue-50" },
-    { id: "ach-2", title: "Discipulado Fiel", description: "Leitura diária por 7 dias seguidos", icon: BookOpen, color: "text-amber-500 bg-amber-50" },
-    { id: "ach-3", title: "Evangelista Ativo", description: "Trouxe 3 amigos para a Célula", icon: Users, color: "text-emerald-500 bg-emerald-50" },
-    { id: "ach-4", title: "Intercessor Guerreiro", description: "Apoiou mais de 10 motivos de oração", icon: Award, color: "text-purple-500 bg-purple-50" },
-    { id: "ach-5", title: "Generosidade e Doação", description: "Participou de 3 ações sociais HUIOS", icon: Sparkles, color: "text-red-500 bg-red-50" }
+  const insigniaCategories = [
+    {
+      category: "🤝 PARTICIPAÇÃO E CONVITES",
+      icon: Users,
+      items: [
+        { id: "ins-1", title: "Pescador de Amigos", description: "Levou 1 amigo ao grupo." },
+        { id: "ins-2", title: "Rede Cheia", description: "Levou 5 amigos diferentes." },
+        { id: "ins-3", title: "Influenciador", description: "Levou 10 amigos diferentes." },
+        { id: "ins-4", title: "Anfitrião", description: "Recebeu e acompanhou um visitante." }
+      ]
+    },
+    {
+      category: "🎵 MINISTÉRIO DE LOUVOR",
+      icon: Music,
+      items: [
+        { id: "ins-5", title: "Louvor em Ação", description: "Participou de 5 ministrações." },
+        { id: "ins-6", title: "Músico Fiel", description: "Participou de 20 ministrações." },
+        { id: "ins-7", title: "Adorador", description: "6 meses ativos no louvor." }
+      ]
+    },
+    {
+      category: "🛠️ SERVIÇO",
+      icon: Briefcase,
+      items: [
+        { id: "ins-8", title: "Mãos que Servem", description: "Ajudou em 3 eventos." },
+        { id: "ins-9", title: "Servo Dedicado", description: "Ajudou em 10 eventos." },
+        { id: "ins-10", title: "Bastidores do Reino", description: "Trabalhou em montagem, recepção ou limpeza." }
+      ]
+    },
+    {
+      category: "📖 BÍBLIA",
+      icon: BookOpen,
+      items: [
+        { id: "ins-11", title: "Conhecedor da Palavra", description: "Participou de 10 estudos bíblicos." }
+      ]
+    },
+    {
+      category: "🙏 ORAÇÃO",
+      icon: Flame,
+      items: [
+        { id: "ins-12", title: "Intercessor", description: "Participou de 3 reuniões de oração." },
+        { id: "ins-13", title: "Sentinela", description: "Participou de uma vigília." },
+        { id: "ins-14", title: "Guerreiro de Oração", description: "Participou de 10 reuniões de oração." }
+      ]
+    },
+    {
+      category: "❤️ COMUNHÃO",
+      icon: Heart,
+      items: [
+        { id: "ins-15", title: "Presença Fiel", description: "1 mês sem faltas." },
+        { id: "ins-16", title: "Comprometido", description: "3 meses sem faltas." },
+        { id: "ins-17", title: "Exemplo de Fidelidade", description: "6 meses sem faltas." }
+      ]
+    },
+    {
+      category: "🎯 DESAFIOS ESPECIAIS",
+      icon: Target,
+      items: [
+        { id: "ins-18", title: "Evangelista", description: "Compartilhou o evangelho com 3 pessoas." },
+        { id: "ins-19", title: "Missionário de Um Dia", description: "Participou de ação evangelística." },
+        { id: "ins-20", title: "Impacto Social", description: "Participou de ação solidária." }
+      ]
+    }
   ];
+
+  const checkUnlocked = (item: { id: string; title: string }) => {
+    return activeUser.achievements.some((a) => {
+      if (a.id === item.id || a.title === item.title) return true;
+      if (a.id === "ach-1" && item.id === "ins-1") return true;
+      if (a.id === "ach-2" && item.id === "ins-11") return true;
+      if (a.id === "ach-3" && item.id === "ins-18") return true;
+      if (a.id === "ach-4" && item.id === "ins-12") return true;
+      if (a.id === "ach-5" && item.id === "ins-20") return true;
+      return false;
+    });
+  };
+
+  const totalInsignias = 20;
+  let unlockedCount = 0;
+  insigniaCategories.forEach((cat) => {
+    cat.items.forEach((item) => {
+      if (checkUnlocked(item)) {
+        unlockedCount++;
+      }
+    });
+  });
 
   return (
     <div id="profile-view-container" className="space-y-6 pb-16 text-left max-w-4xl mx-auto">
@@ -227,48 +306,60 @@ export default function ProfileView({ activeUser, onUpdateProfile, onLogout }: P
         </div>
 
         {/* Achievements grid (Right 7) */}
-        <div className="lg:col-span-7 space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="lg:col-span-7 space-y-6">
+          <div className="flex items-center justify-between border-b border-white/5 pb-4">
             <h3 className="font-display text-sm font-bold text-white flex items-center gap-1.5">
               <Award className="h-4 w-4 text-[#C62828]" />
-              <span>Conquistas e Emblemas ({activeUser.achievements.length})</span>
+              <span>Suas Insígnias HUIOS ({unlockedCount} de {totalInsignias})</span>
             </h3>
-            <span className="text-[10px] text-neutral-400 font-mono">Disponíveis: 5</span>
+            <span className="text-[10px] text-neutral-400 font-mono">Progresso: {Math.round((unlockedCount / totalInsignias) * 100)}%</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {allPossibleBadges.map((badge) => {
-              const isUnlocked = activeUser.achievements.some((a) => a.id === badge.id);
-              const Icon = badge.icon;
+          <div className="space-y-6 max-h-[800px] overflow-y-auto pr-1">
+            {insigniaCategories.map((cat) => {
+              const CatIcon = cat.icon;
               return (
-                <div
-                  key={badge.id}
-                  className={`rounded-3xl border p-5 text-left flex items-start gap-3.5 transition-all duration-300 ${
-                    isUnlocked
-                      ? "bg-[#252525] border-white/5 opacity-100 shadow-md"
-                      : "bg-[#1E1E1E] border-white/5 opacity-40 hover:opacity-60"
-                  }`}
-                >
-                  <div className={`p-3 rounded-2xl shrink-0 ${
-                    isUnlocked 
-                      ? "bg-[#C62828]/10 text-[#C62828]" 
-                      : "bg-[#1B1B1B] text-neutral-600"
-                  }`}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <h4 className={`text-xs font-bold ${isUnlocked ? "text-white" : "text-neutral-500"}`}>
-                        {badge.title}
-                      </h4>
-                      {isUnlocked && <span className="text-[10px] animate-pulse">✨</span>}
-                    </div>
-                    <p className="text-[10px] text-neutral-400 leading-relaxed mt-1 font-light">{badge.description}</p>
-                    <span className={`block text-[8px] font-bold uppercase mt-3 tracking-wider ${
-                      isUnlocked ? "text-emerald-400" : "text-neutral-600"
-                    }`}>
-                      {isUnlocked ? "✅ DESBLOQUEADO" : "🔒 BLOQUEADO"}
-                    </span>
+                <div key={cat.category} className="space-y-3">
+                  <h4 className="text-xs font-bold text-[#C62828] flex items-center gap-2 uppercase tracking-wider font-display">
+                    <CatIcon className="h-4 w-4 shrink-0" />
+                    <span>{cat.category}</span>
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {cat.items.map((item) => {
+                      const isUnlocked = checkUnlocked(item);
+                      return (
+                        <div
+                          key={item.id}
+                          className={`rounded-2xl border p-4 text-left flex items-start gap-3.5 transition-all duration-300 ${
+                            isUnlocked
+                              ? "bg-[#252525] border-white/10 opacity-100 shadow-md"
+                              : "bg-[#1E1E1E] border-white/5 opacity-40 hover:opacity-55"
+                          }`}
+                        >
+                          <div className={`p-2.5 rounded-xl shrink-0 ${
+                            isUnlocked 
+                              ? "bg-[#C62828]/10 text-[#C62828]" 
+                              : "bg-[#1B1B1B] text-neutral-600"
+                          }`}>
+                            <CatIcon className="h-4.5 w-4.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 justify-between">
+                              <h5 className={`text-xs font-bold truncate ${isUnlocked ? "text-white" : "text-neutral-500"}`}>
+                                {item.title}
+                              </h5>
+                              {isUnlocked && <span className="text-[10px] shrink-0">✨</span>}
+                            </div>
+                            <p className="text-[10px] text-neutral-400 leading-snug mt-1 font-light line-clamp-2">{item.description}</p>
+                            <span className={`block text-[8px] font-bold uppercase mt-2.5 tracking-wider ${
+                              isUnlocked ? "text-emerald-400" : "text-neutral-600"
+                            }`}>
+                              {isUnlocked ? "✅ DESBLOQUEADO" : "🔒 BLOQUEADO"}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );

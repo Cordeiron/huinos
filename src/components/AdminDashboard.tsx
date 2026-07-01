@@ -44,6 +44,29 @@ interface AdminDashboardProps {
   onUpdateSettings: (verseText: string, verseRef: string, bannerUrl: string) => void;
 }
 
+const INSIGNIAS_LIST = [
+  { id: "ins-1", title: "Pescador de Amigos", description: "Levou 1 amigo ao grupo.", category: "Participação" },
+  { id: "ins-2", title: "Rede Cheia", description: "Levou 5 amigos diferentes.", category: "Participação" },
+  { id: "ins-3", title: "Influenciador", description: "Levou 10 amigos diferentes.", category: "Participação" },
+  { id: "ins-4", title: "Anfitrião", description: "Recebeu e acompanhou um visitante.", category: "Participação" },
+  { id: "ins-5", title: "Louvor em Ação", description: "Participou de 5 ministrações.", category: "Louvor" },
+  { id: "ins-6", title: "Músico Fiel", description: "Participou de 20 ministrações.", category: "Louvor" },
+  { id: "ins-7", title: "Adorador", description: "6 meses ativos no louvor.", category: "Louvor" },
+  { id: "ins-8", title: "Mãos que Servem", description: "Ajudou em 3 eventos.", category: "Serviço" },
+  { id: "ins-9", title: "Servo Dedicado", description: "Ajudou em 10 eventos.", category: "Serviço" },
+  { id: "ins-10", title: "Bastidores do Reino", description: "Trabalhou em montagem, recepção ou limpeza.", category: "Serviço" },
+  { id: "ins-11", title: "Conhecedor da Palavra", description: "Participou de 10 estudos bíblicos.", category: "Bíblia" },
+  { id: "ins-12", title: "Intercessor", description: "Participou de 3 reuniões de oração.", category: "Oração" },
+  { id: "ins-13", title: "Sentinela", description: "Participou de uma vigília.", category: "Oração" },
+  { id: "ins-14", title: "Guerreiro de Oração", description: "Participou de 10 reuniões de oração.", category: "Oração" },
+  { id: "ins-15", title: "Presença Fiel", description: "1 mês sem faltas.", category: "Comunhão" },
+  { id: "ins-16", title: "Comprometido", description: "3 meses sem faltas.", category: "Comunhão" },
+  { id: "ins-17", title: "Exemplo de Fidelidade", description: "6 meses sem faltas.", category: "Comunhão" },
+  { id: "ins-18", title: "Evangelista", description: "Compartilhou o evangelho com 3 pessoas.", category: "Desafios" },
+  { id: "ins-19", title: "Missionário de Um Dia", description: "Participou de ação evangelística.", category: "Desafios" },
+  { id: "ins-20", title: "Impacto Social", description: "Participou de ação solidária.", category: "Desafios" }
+];
+
 export default function AdminDashboard({
   currentRole,
   stats,
@@ -108,6 +131,7 @@ export default function AdminDashboard({
   const [userFormBirthDate, setUserFormBirthDate] = useState("");
   const [userFormCellGroup, setUserFormCellGroup] = useState("");
   const [userFormPoints, setUserFormPoints] = useState(0);
+  const [userFormAchievements, setUserFormAchievements] = useState<any[]>([]);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
 
   const fetchUsersList = async () => {
@@ -145,7 +169,8 @@ export default function AdminDashboard({
           phone: userFormPhone,
           birthDate: userFormBirthDate,
           cellGroup: userFormCellGroup,
-          points: Number(userFormPoints)
+          points: Number(userFormPoints),
+          achievements: userFormAchievements
         };
         if (userFormPassword) {
           payload.password = userFormPassword;
@@ -165,7 +190,8 @@ export default function AdminDashboard({
           role: currentRole === UserRole.ADMIN ? userFormRole : UserRole.MEMBER,
           phone: userFormPhone,
           birthDate: userFormBirthDate,
-          cellGroup: userFormCellGroup
+          cellGroup: userFormCellGroup,
+          achievements: userFormAchievements
         };
 
         await api.createUser(payload);
@@ -181,6 +207,7 @@ export default function AdminDashboard({
       setUserFormBirthDate("");
       setUserFormCellGroup("");
       setUserFormPoints(0);
+      setUserFormAchievements([]);
       setEditingUserId(null);
 
       // Reload
@@ -200,6 +227,7 @@ export default function AdminDashboard({
     setUserFormBirthDate(user.birthDate || "");
     setUserFormCellGroup(user.cellGroup || "");
     setUserFormPoints(user.points || 0);
+    setUserFormAchievements(user.achievements || []);
   };
 
   const cancelEditUser = () => {
@@ -212,6 +240,7 @@ export default function AdminDashboard({
     setUserFormBirthDate("");
     setUserFormCellGroup("");
     setUserFormPoints(0);
+    setUserFormAchievements([]);
   };
 
   const handleDeleteUser = async (userId: string) => {
@@ -1409,6 +1438,44 @@ export default function AdminDashboard({
                     onChange={(e) => setUserFormPoints(Number(e.target.value))}
                     className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 text-white rounded-xl outline-none focus:border-[#C62828]/50"
                   />
+                </div>
+              )}
+
+              {/* INSIGNIAS CHECKBOXES (ADMINS & LEADERS ONLY) */}
+              {(currentRole === UserRole.ADMIN || currentRole === UserRole.LEADER) && (
+                <div className="space-y-2 bg-[#1B1B1B]/40 p-4 rounded-2xl border border-white/5">
+                  <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-wider block">Insígnias do Membro</span>
+                  <div className="max-h-[220px] overflow-y-auto space-y-2 pr-1 scrollbar-thin">
+                    {INSIGNIAS_LIST.map((ins) => {
+                      const isChecked = userFormAchievements.some((a: any) => a.id === ins.id || a.title === ins.title);
+                      return (
+                        <label key={ins.id} className="flex items-start gap-2.5 p-2 bg-[#1B1B1B] hover:bg-[#202020] rounded-xl border border-white/5 cursor-pointer transition-colors text-left">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setUserFormAchievements([
+                                  ...userFormAchievements,
+                                  { id: ins.id, title: ins.title, description: ins.description, unlockedAt: new Date().toISOString() }
+                                ]);
+                              } else {
+                                setUserFormAchievements(
+                                  userFormAchievements.filter((a: any) => a.id !== ins.id && a.title !== ins.title)
+                                );
+                              }
+                            }}
+                            className="mt-0.5 rounded border-white/10 text-[#C62828] focus:ring-[#C62828]/50 focus:ring-offset-0 bg-[#121212]"
+                          />
+                          <div>
+                            <div className="text-[10px] font-bold text-white">{ins.title}</div>
+                            <div className="text-[9px] text-neutral-400 font-light mt-0.5 leading-tight">{ins.description}</div>
+                            <span className="inline-block text-[8px] font-bold uppercase text-[#C62828] tracking-widest mt-1 opacity-80">{ins.category}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 

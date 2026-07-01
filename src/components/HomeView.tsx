@@ -257,7 +257,7 @@ export default function HomeView({ events, news, verse, onNavigateTo, bannerImag
 
         {/* 5. Spotify do Huios (col-span-4) */}
         <a 
-          href="https://open.spotify.com" 
+          href="https://open.spotify.com/playlist/6A4DvhCX8eRgHQDzpILNQS?si=toEQVuXNSfurTQRh-_Vgcw&pi=bV797VLeSJKa7" 
           target="_blank" 
           rel="noreferrer"
           className="lg:col-span-4 bg-gradient-to-tr from-[#121212] via-[#1C1C1C] to-[#1ED760]/10 rounded-3xl p-6 border border-[#1ED760]/20 flex flex-col justify-between min-h-[300px] hover:border-[#1ED760]/50 transition-all duration-300 group cursor-pointer"

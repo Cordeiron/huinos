@@ -25,6 +25,23 @@ export default function AboutView({ currentRole }: AboutViewProps) {
   const [isEditingGallery, setIsEditingGallery] = useState(false);
   const [editableGallery, setEditableGallery] = useState<any[]>([]);
 
+  const defaultBanners = {
+    header: {
+      url: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=1200",
+      title: "A História do Movimento HUIOS",
+      subtitle: "Entenda o significado por trás do nosso nome, nosso chamado espiritual e como nos organizamos para servir a Deus com integridade e paixão contagiante."
+    },
+    history: {
+      url: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=800",
+      title: "Unidade & Profundidade",
+      subtitle: "Encontros focados na busca constante pela excelência."
+    }
+  };
+
+  const [banners, setBanners] = useState<any>(defaultBanners);
+  const [isEditingBanners, setIsEditingBanners] = useState(false);
+  const [editableBanners, setEditableBanners] = useState<any>(defaultBanners);
+
   const values = [
     {
       icon: Target,
@@ -49,6 +66,11 @@ export default function AboutView({ currentRole }: AboutViewProps) {
       const data = await api.getAbout();
       setLeaders(data.leaders || []);
       setGallery(data.gallery || []);
+      if (data.banners) {
+        setBanners(data.banners);
+      } else {
+        setBanners(defaultBanners);
+      }
     } catch (err: any) {
       console.error(err);
       setError("Erro ao carregar dados do servidor. Exibindo dados locais de backup.");
@@ -79,6 +101,7 @@ export default function AboutView({ currentRole }: AboutViewProps) {
         { title: "Ação Social HUIOS", url: "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&q=80&w=400" },
         { title: "Gincana e Integração", url: "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&q=80&w=400" }
       ]);
+      setBanners(defaultBanners);
     } finally {
       setLoading(false);
     }
@@ -96,6 +119,24 @@ export default function AboutView({ currentRole }: AboutViewProps) {
   const startEditingGallery = () => {
     setEditableGallery([...gallery]);
     setIsEditingGallery(true);
+  };
+
+  const startEditingBanners = () => {
+    setEditableBanners({
+      header: { ...(banners?.header || defaultBanners.header) },
+      history: { ...(banners?.history || defaultBanners.history) }
+    });
+    setIsEditingBanners(true);
+  };
+
+  const handleSaveBanners = async () => {
+    try {
+      await api.updateAbout({ banners: editableBanners });
+      setBanners(editableBanners);
+      setIsEditingBanners(false);
+    } catch (err: any) {
+      alert(err.message || "Erro ao salvar banners.");
+    }
   };
 
   const handleSaveLeaders = async () => {
@@ -166,18 +207,176 @@ export default function AboutView({ currentRole }: AboutViewProps) {
   return (
     <div id="about-view-container" className="space-y-12 pb-16">
       {/* Header Banner Section */}
-      <section className="text-center max-w-3xl mx-auto space-y-4">
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-[#C62828]/15 px-3 py-1 border border-red-500/20 text-xs font-bold text-red-500">
-          <Sparkles className="h-3.5 w-3.5" />
-          <span>NOSSA IDENTIDADE</span>
+      <section className="relative rounded-3xl overflow-hidden min-h-[260px] md:min-h-[340px] flex items-center bg-neutral-950 border border-white/5 shadow-xl">
+        <img
+          src={banners?.header?.url || defaultBanners.header.url}
+          alt="Banner Principal"
+          className="absolute inset-0 w-full h-full object-cover opacity-30"
+          referrerPolicy="no-referrer"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-950/80 to-transparent" />
+        <div className="relative z-10 max-w-2xl p-8 md:p-12 space-y-4 text-left">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-[#C62828]/20 px-3 py-1 border border-red-500/30 text-[10px] md:text-xs font-bold text-red-400">
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>NOSSA IDENTIDADE</span>
+          </div>
+          <h2 className="font-display text-2xl md:text-4xl font-black text-white">
+            {banners?.header?.title || defaultBanners.header.title}
+          </h2>
+          <p className="text-xs md:text-sm text-neutral-300 font-light leading-relaxed">
+            {banners?.header?.subtitle || defaultBanners.header.subtitle}
+          </p>
         </div>
-        <h2 className="font-display text-3xl md:text-5xl font-black text-neutral-800 dark:text-white">
-          A História do Movimento HUIOS
-        </h2>
-        <p className="text-sm md:text-base text-neutral-500 dark:text-neutral-400 font-light leading-relaxed">
-          Entenda o significado por trás do nosso nome, nosso chamado espiritual e como nos organizamos para servir a Deus com integridade e paixão contagiante.
-        </p>
+
+        {/* Edit Button Overlay */}
+        {isLeaderOrAdmin && !isEditingBanners && (
+          <button
+            onClick={startEditingBanners}
+            className="absolute top-4 right-4 z-20 flex items-center gap-1.5 rounded-xl bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/10 px-3.5 py-2 text-xs font-bold text-white transition-all shadow-md cursor-pointer"
+          >
+            <Edit2 className="h-3.5 w-3.5 text-[#C62828]" />
+            <span>Editar Banners</span>
+          </button>
+        )}
       </section>
+
+      {/* Banners Edit Form */}
+      {isEditingBanners && (
+        <div className="rounded-3xl border border-[#C62828]/20 bg-[#1F1F1F] p-6 space-y-6 shadow-xl animate-fade-in">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-neutral-850 pb-4">
+            <div className="flex items-center gap-2">
+              <Image className="h-5 w-5 text-[#C62828]" />
+              <h3 className="font-display text-lg font-bold text-white">Editar Banners da Página Sobre</h3>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSaveBanners}
+                className="flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-xs font-black text-white transition-colors cursor-pointer"
+              >
+                <Check className="h-4 w-4" />
+                <span>Salvar Banners</span>
+              </button>
+              <button
+                onClick={() => setIsEditingBanners(false)}
+                className="flex items-center gap-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 px-3.5 py-2 text-xs font-bold text-white transition-colors cursor-pointer"
+              >
+                <X className="h-4 w-4 text-red-500" />
+                <span>Cancelar</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Banner Principal Form */}
+            <div className="space-y-4 bg-black/20 p-5 rounded-2xl border border-white/5">
+              <h4 className="text-xs font-bold text-[#C62828] uppercase tracking-wider">1. Banner Principal (Topo)</h4>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block mb-1">Título do Banner</label>
+                  <input
+                    type="text"
+                    value={editableBanners.header?.title || ""}
+                    onChange={(e) => setEditableBanners({
+                      ...editableBanners,
+                      header: { ...editableBanners.header, title: e.target.value }
+                    })}
+                    placeholder="Título"
+                    className="w-full bg-black/40 border border-white/10 focus:border-[#C62828] rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block mb-1">Subtítulo / Descrição</label>
+                  <textarea
+                    value={editableBanners.header?.subtitle || ""}
+                    onChange={(e) => setEditableBanners({
+                      ...editableBanners,
+                      header: { ...editableBanners.header, subtitle: e.target.value }
+                    })}
+                    placeholder="Descrição do banner principal..."
+                    rows={2}
+                    className="w-full bg-black/40 border border-white/10 focus:border-[#C62828] rounded-xl px-3 py-2 text-xs text-white resize-none focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block mb-1">Link da Imagem de Fundo</label>
+                  <input
+                    type="text"
+                    value={editableBanners.header?.url || ""}
+                    onChange={(e) => setEditableBanners({
+                      ...editableBanners,
+                      header: { ...editableBanners.header, url: e.target.value }
+                    })}
+                    placeholder="Link da imagem (Unsplash)"
+                    className="w-full bg-black/40 border border-white/10 focus:border-[#C62828] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none"
+                  />
+                </div>
+                {editableBanners.header?.url && (
+                  <div className="aspect-video rounded-xl overflow-hidden bg-neutral-900 border border-white/5 relative">
+                    <img src={editableBanners.header.url} alt="Preview Top" className="w-full h-full object-cover opacity-60" referrerPolicy="no-referrer" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                      <span className="text-[9px] font-bold uppercase tracking-widest bg-black/60 px-2 py-1 rounded text-neutral-300">Prévia do Banner</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Banner da História Form */}
+            <div className="space-y-4 bg-black/20 p-5 rounded-2xl border border-white/5">
+              <h4 className="text-xs font-bold text-[#C62828] uppercase tracking-wider">2. Banner da História (Lateral)</h4>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block mb-1">Título do Banner</label>
+                  <input
+                    type="text"
+                    value={editableBanners.history?.title || ""}
+                    onChange={(e) => setEditableBanners({
+                      ...editableBanners,
+                      history: { ...editableBanners.history, title: e.target.value }
+                    })}
+                    placeholder="Título"
+                    className="w-full bg-black/40 border border-white/10 focus:border-[#C62828] rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block mb-1">Subtítulo / Descrição</label>
+                  <input
+                    type="text"
+                    value={editableBanners.history?.subtitle || ""}
+                    onChange={(e) => setEditableBanners({
+                      ...editableBanners,
+                      history: { ...editableBanners.history, subtitle: e.target.value }
+                    })}
+                    placeholder="Legenda do banner histórico..."
+                    className="w-full bg-black/40 border border-white/10 focus:border-[#C62828] rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block mb-1">Link da Imagem de Fundo</label>
+                  <input
+                    type="text"
+                    value={editableBanners.history?.url || ""}
+                    onChange={(e) => setEditableBanners({
+                      ...editableBanners,
+                      history: { ...editableBanners.history, url: e.target.value }
+                    })}
+                    placeholder="Link da imagem (Unsplash)"
+                    className="w-full bg-black/40 border border-white/10 focus:border-[#C62828] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none"
+                  />
+                </div>
+                {editableBanners.history?.url && (
+                  <div className="aspect-video rounded-xl overflow-hidden bg-neutral-900 border border-white/5 relative">
+                    <img src={editableBanners.history.url} alt="Preview History" className="w-full h-full object-cover opacity-60" referrerPolicy="no-referrer" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                      <span className="text-[9px] font-bold uppercase tracking-widest bg-black/60 px-2 py-1 rounded text-neutral-300">Prévia do Banner</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* History Split Section */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
@@ -198,14 +397,19 @@ export default function AboutView({ currentRole }: AboutViewProps) {
 
         <div className="lg:col-span-5 relative rounded-3xl overflow-hidden shadow-xl min-h-[300px] bg-neutral-900 border border-white/5">
           <img
-            src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=800"
-            alt="Grupo de jovens orando"
+            src={banners?.history?.url || defaultBanners.history.url}
+            alt="Banner Histórico"
             className="w-full h-full object-cover opacity-35"
+            referrerPolicy="no-referrer"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
           <div className="absolute bottom-6 left-6 right-6">
-            <p className="text-white text-xs font-bold uppercase tracking-wider font-mono">Unidade & Profundidade</p>
-            <p className="text-neutral-300 text-[10px] mt-1 font-light">Encontros focados na busca constante pela excelência.</p>
+            <p className="text-white text-xs font-bold uppercase tracking-wider font-mono">
+              {banners?.history?.title || defaultBanners.history.title}
+            </p>
+            <p className="text-neutral-300 text-[10px] mt-1 font-light">
+              {banners?.history?.subtitle || defaultBanners.history.subtitle}
+            </p>
           </div>
         </div>
       </section>

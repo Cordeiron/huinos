@@ -164,9 +164,18 @@ export default function App() {
     }
   };
 
-  // Fetch all data when role changes (login/logout)
+  // Fetch all data when role changes (login/logout) & update in real-time
   useEffect(() => {
     loadAllData();
+
+    // Configura atualização em tempo real para o ranking e envios
+    const interval = setInterval(() => {
+      if (api.getToken()) {
+        loadAllData();
+      }
+    }, 10000); // atualiza a cada 10 segundos
+
+    return () => clearInterval(interval);
   }, [currentRole]);
 
   // Load settings (verse + banner) from database on mount

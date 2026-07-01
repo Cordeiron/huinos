@@ -43,6 +43,8 @@ export default function ChallengesView({
     return b.points - a.points; // general
   });
 
+  const top10Ranking = sortedRanking.slice(0, 10);
+
   const activeChallenges = challenges.filter((c) => c.active);
 
   const handleOpenSubmission = (challenge: Challenge) => {
@@ -55,11 +57,10 @@ export default function ChallengesView({
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedChallenge) return;
-    if (!responseText.trim()) return;
 
     onCompleteChallenge(
       selectedChallenge.id,
-      responseText.trim(),
+      responseText,
       mediaUrl.trim(),
       mediaUrl.trim() ? "image" : "text"
     );
@@ -202,11 +203,7 @@ export default function ChallengesView({
                 </div>
 
                 <div className="mt-6">
-                  {activeUser.role !== "MEMBER" ? (
-                    <div className="w-full rounded-xl py-2.5 px-3 text-center text-xs font-bold border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                      ⚠️ Apenas Membros participam das gincanas
-                    </div>
-                  ) : submitted ? (
+                  {submitted ? (
                     <div className={`w-full rounded-xl py-2 px-3 text-center text-xs font-bold border flex flex-col sm:flex-row items-center justify-center gap-1.5 ${
                       status === "Aprovado"
                         ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
@@ -264,66 +261,66 @@ export default function ChallengesView({
           {/* Podium Highlights (Visual Top 3) */}
           <div className="grid grid-cols-3 gap-3 items-end pt-8 pb-4">
             {/* Second place */}
-            {sortedRanking[1] && (
+            {top10Ranking[1] && (
               <div className="flex flex-col items-center">
                 <div className="relative">
                   <div className="h-14 w-14 rounded-full border-2 border-slate-300 bg-neutral-200 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 flex items-center justify-center font-display text-xs font-black uppercase">
-                    {sortedRanking[1].name.slice(0, 2)}
+                    {top10Ranking[1].name.slice(0, 2)}
                   </div>
                   <div className="absolute -bottom-1 -right-1 bg-slate-300 text-neutral-800 rounded-full h-5 w-5 flex items-center justify-center font-bold text-xs">
                     2
                   </div>
                 </div>
                 <p className="mt-2 text-[10px] font-bold text-neutral-700 dark:text-neutral-300 truncate max-w-full text-center">
-                  {sortedRanking[1].name.split(" ")[0]}
+                  {top10Ranking[1].name.split(" ")[0]}
                 </p>
                 <p className="text-[10px] font-mono text-red-600 dark:text-red-500 font-extrabold">
-                  {sortedRanking[1].points} pts
+                  {top10Ranking[1].points} pts
                 </p>
                 <div className="h-16 w-full bg-slate-200/60 dark:bg-slate-800/60 rounded-t-xl mt-3 border-t border-slate-300/30" />
               </div>
             )}
 
             {/* First place */}
-            {sortedRanking[0] && (
+            {top10Ranking[0] && (
               <div className="flex flex-col items-center">
                 <div className="relative -translate-y-2">
                   <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-yellow-500 animate-bounce">
                     👑
                   </div>
                   <div className="h-18 w-18 rounded-full border-4 border-amber-400 bg-amber-500/10 text-amber-500 flex items-center justify-center font-display text-sm font-black uppercase shadow-lg">
-                    {sortedRanking[0].name.slice(0, 2)}
+                    {top10Ranking[0].name.slice(0, 2)}
                   </div>
                   <div className="absolute -bottom-1 -right-1 bg-amber-400 text-neutral-900 rounded-full h-6 w-6 flex items-center justify-center font-bold text-xs">
                     1
                   </div>
                 </div>
                 <p className="mt-1 text-xs font-black text-neutral-800 dark:text-neutral-100 truncate max-w-full text-center">
-                  {sortedRanking[0].name.split(" ")[0]}
+                  {top10Ranking[0].name.split(" ")[0]}
                 </p>
                 <p className="text-xs font-mono text-red-600 dark:text-red-500 font-black">
-                  {sortedRanking[0].points} pts
+                  {top10Ranking[0].points} pts
                 </p>
                 <div className="h-24 w-full bg-gradient-to-t from-red-600/20 to-amber-100/60 dark:from-red-950/20 dark:to-amber-950/20 rounded-t-xl mt-3 border-t-2 border-amber-400/50" />
               </div>
             )}
 
             {/* Third place */}
-            {sortedRanking[2] && (
+            {top10Ranking[2] && (
               <div className="flex flex-col items-center">
                 <div className="relative">
                   <div className="h-12 w-12 rounded-full border-2 border-amber-700/60 bg-neutral-200 text-amber-700 dark:bg-neutral-800 dark:text-amber-500 flex items-center justify-center font-display text-[11px] font-bold uppercase">
-                    {sortedRanking[2].name.slice(0, 2)}
+                    {top10Ranking[2].name.slice(0, 2)}
                   </div>
                   <div className="absolute -bottom-1 -right-1 bg-amber-700/60 text-white rounded-full h-5 w-5 flex items-center justify-center font-bold text-[10px]">
                     3
                   </div>
                 </div>
                 <p className="mt-2 text-[10px] font-bold text-neutral-700 dark:text-neutral-300 truncate max-w-full text-center">
-                  {sortedRanking[2].name.split(" ")[0]}
+                  {top10Ranking[2].name.split(" ")[0]}
                 </p>
                 <p className="text-[10px] font-mono text-red-600 dark:text-red-500 font-extrabold">
-                  {sortedRanking[2].points} pts
+                  {top10Ranking[2].points} pts
                 </p>
                 <div className="h-12 w-full bg-amber-800/10 dark:bg-amber-900/10 rounded-t-xl mt-3 border-t border-amber-700/20" />
               </div>
@@ -332,7 +329,7 @@ export default function ChallengesView({
 
           {/* General List ranking */}
           <div className="space-y-1 bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 rounded-2xl p-3 shadow-inner max-h-96 overflow-y-auto">
-            {sortedRanking.map((user, index) => (
+            {top10Ranking.map((user, index) => (
               <div
                 key={user.id}
                 className={`flex items-center justify-between p-2.5 rounded-xl transition-colors ${

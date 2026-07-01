@@ -64,6 +64,15 @@ export const api = {
     return data;
   },
 
+  async register(userData: any) {
+    const data = await this.request("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify(userData),
+    });
+    this.setToken(data.token);
+    return data;
+  },
+
   async me() {
     return this.request("/api/auth/me");
   },

@@ -82,6 +82,64 @@ async function startServer() {
     }
   });
 
+  app.post("/api/auth/register", async (req: any, res: any) => {
+    try {
+      const { name, email, password, phone, birthDate, cellGroup } = req.body;
+
+      if (!name || !email || !password) {
+        return res.status(400).json({ error: "Nome, e-mail e senha são obrigatórios" });
+      }
+
+      // Check if email already exists
+      const existingUser = await db.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: "Este e-mail já está cadastrado" });
+      }
+
+      const salt = bcrypt.genSaltSync(10);
+      const passwordHash = bcrypt.hashSync(password, salt);
+
+      const newUser = {
+        id: "user-" + Math.random().toString(36).substr(2, 9),
+        name,
+        email: email.toLowerCase(),
+        passwordHash,
+        phone: phone || "",
+        birthDate: birthDate || "",
+        cellGroup: cellGroup || "",
+        role: UserRole.MEMBER, // default newly registered as Member
+        avatarUrl: "",
+        points: 0,
+        medals: { gold: 0, silver: 0, bronze: 0 },
+        achievements: [],
+        createdBy: "self-register",
+        createdAt: new Date().toISOString()
+      };
+
+      const createdUser = await db.createUser(newUser);
+
+      await db.logAction(
+        name,
+        email,
+        UserRole.MEMBER,
+        `Auto-registro de usuário: ${name}`
+      );
+
+      // Automatically generate a token for the user so they can login immediately
+      const token = jwt.sign(
+        { id: createdUser.id, name: createdUser.name, email: createdUser.email, role: createdUser.role },
+        JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      const { passwordHash: _, ...userProfile } = createdUser;
+      res.status(201).json({ user: userProfile, token });
+    } catch (err: any) {
+      console.error("Erro no auto-registro:", err);
+      res.status(500).json({ error: "Erro interno no servidor" });
+    }
+  });
+
   app.get("/api/auth/me", authenticateToken, async (req: any, res: any) => {
     try {
       const user = await db.getUserById(req.user.id);
@@ -109,19 +167,19 @@ async function startServer() {
       // Map profiles to omit password hashes
       const profiles = allUsers.map(({ passwordHash, ...profile }) => profile);
 
-      if (role === UserRole.ADMIN) {
-        // Admin sees everyone
+      if (role === UserRole.ADMIN || role === UserRole.LEADER) {
+        // Admin and Leader see complete profiles
         return res.json(profiles);
-      } else if (role === UserRole.LEADER) {
-        // Leader sees all members + themselves
-        const filtered = profiles.filter(
-          u => u.id === id || u.role === UserRole.MEMBER
-        );
-        return res.json(filtered);
       } else {
-        // Member can only see themselves
-        const filtered = profiles.filter(u => u.id === id);
-        return res.json(filtered);
+        // Members see all users' ranking profiles (with phone, birthDate, email of other users omitted)
+        const publicRankingProfiles = profiles.map((u) => {
+          if (u.id === id) {
+            return u; // Allow seeing their own full profile
+          }
+          const { phone, birthDate, email, ...publicFields } = u;
+          return publicFields;
+        });
+        return res.json(publicRankingProfiles);
       }
     } catch (err: any) {
       console.error("Erro ao obter usuários:", err);
@@ -197,7 +255,7 @@ async function startServer() {
     try {
       const { id: editorId, role: editorRole, name: editorName, email: editorEmail } = req.user;
       const { id: targetId } = req.params;
-      const { name, email, password, role, phone, birthDate, cellGroup, points, medals } = req.body;
+      const { name, email, password, role, phone, birthDate, cellGroup, points, medals, achievements } = req.body;
 
       const targetUser = await db.getUserById(targetId);
 
@@ -250,6 +308,9 @@ async function startServer() {
             silver: Number(medals.silver ?? targetUser.medals.silver),
             bronze: Number(medals.bronze ?? targetUser.medals.bronze)
           };
+        }
+        if (achievements !== undefined) {
+          updates.achievements = achievements;
         }
       }
 
@@ -831,7 +892,7 @@ async function startServer() {
   app.post("/api/submissions", authenticateToken, async (req: any, res: any) => {
     try {
       const { id: userId, name: userName, role } = req.user;
-      if (role !== UserRole.MEMBER && role !== UserRole.LEADER) {
+      if (role !== UserRole.MEMBER && role !== UserRole.LEADER && role !== UserRole.ADMIN) {
         return res.status(403).json({ error: "Apenas membros cadastrados participam das gincanas" });
       }
 
@@ -955,41 +1016,6 @@ async function startServer() {
     }
   });
 
-  // --- SETTINGS (VERSE AND BANNER) ---
-  app.get("/api/settings", async (req, res) => {
-    try {
-      let settings = await db.getSettings();
-      if (!settings) {
-        settings = {
-          id: "global-1",
-          verseText: "Ninguém despreze a tua mocidade; mas sê o exemplo dos fiéis, na palavra, no trato, no amor, no espírito, na fé, na pureza.",
-          verseReference: "1 Timóteo 4:12",
-          verseTranslation: "Almeida Revista e Corrigida",
-          bannerUrl: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=1200"
-        };
-      }
-      res.json(settings);
-    } catch (err) {
-      console.error("Erro ao carregar configurações:", err);
-      res.status(500).json({ error: "Erro interno no servidor" });
-    }
-  });
-
-  app.put("/api/settings", authenticateToken, async (req: any, res: any) => {
-    try {
-      const { role } = req.user;
-      if (role !== UserRole.ADMIN && role !== UserRole.LEADER) {
-        return res.status(403).json({ error: "Apenas Administradores ou Líderes podem alterar as configurações" });
-      }
-      const { verseText, verseReference, verseTranslation, bannerUrl } = req.body;
-      const updated = await db.updateSettings({ verseText, verseReference, verseTranslation, bannerUrl });
-      res.json(updated);
-    } catch (err: any) {
-      console.error("Erro ao atualizar configurações:", err);
-      res.status(500).json({ error: err.message || "Erro interno no servidor" });
-    }
-  });
-
   // --- ABOUT PAGE (LEADERS & GALLERY) ---
   app.get("/api/about", async (req, res) => {
     try {
@@ -1008,10 +1034,10 @@ async function startServer() {
   app.put("/api/about", authenticateToken, async (req: any, res: any) => {
     try {
       const { role } = req.user;
-      const { leaders, gallery } = req.body;
+      const { leaders, gallery, banners } = req.body;
       const p = path.join(process.cwd(), "server/about_data.json");
 
-      let currentData = { leaders: [], gallery: [] };
+      let currentData: any = { leaders: [], gallery: [], banners: {} };
       if (fs.existsSync(p)) {
         currentData = JSON.parse(fs.readFileSync(p, "utf-8"));
       }
@@ -1030,10 +1056,57 @@ async function startServer() {
         currentData.gallery = gallery;
       }
 
+      if (banners !== undefined) {
+        if (role !== UserRole.ADMIN && role !== UserRole.LEADER) {
+          return res.status(403).json({ error: "Apenas Administradores ou Líderes podem gerenciar os banners" });
+        }
+        currentData.banners = banners;
+      }
+
       fs.writeFileSync(p, JSON.stringify(currentData, null, 2), "utf-8");
       res.json(currentData);
     } catch (err) {
       console.error("Erro ao atualizar sobre:", err);
+      res.status(500).json({ error: "Erro interno no servidor" });
+    }
+  });
+
+  // --- SETTINGS (VERSE OF THE WEEK & HOME BANNER) ---
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const settings = await db.getSettings();
+      if (!settings) {
+        return res.json({
+          id: "global-1",
+          verseText: "Pois todos os que são guiados pelo Espírito de Deus, esses são filhos de Deus.",
+          verseReference: "Romanos 8:14",
+          verseTranslation: "Almeida Revista e Corrigida",
+          bannerUrl: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=1200"
+        });
+      }
+      res.json(settings);
+    } catch (err: any) {
+      console.error("Erro ao carregar configurações:", err);
+      res.status(500).json({ error: "Erro interno no servidor" });
+    }
+  });
+
+  app.put("/api/settings", authenticateToken, async (req: any, res: any) => {
+    try {
+      const { role } = req.user;
+      if (role !== UserRole.ADMIN) {
+        return res.status(403).json({ error: "Apenas administradores podem atualizar as configurações do portal" });
+      }
+
+      const { verseText, verseReference, bannerUrl } = req.body;
+      const updated = await db.updateSettings({
+        verseText,
+        verseReference,
+        bannerUrl
+      });
+      res.json(updated);
+    } catch (err: any) {
+      console.error("Erro ao salvar configurações:", err);
       res.status(500).json({ error: "Erro interno no servidor" });
     }
   });

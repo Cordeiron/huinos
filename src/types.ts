@@ -29,7 +29,7 @@ export interface UserProfile {
     id: string;
     title: string;
     description: string;
-    icon: string;
+    icon?: string;
     unlockedAt: string;
   }[];
 }

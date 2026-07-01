@@ -39,9 +39,9 @@ export const mockUsers: UserProfile[] = [
     points: 450,
     medals: { gold: 3, silver: 2, bronze: 1 },
     achievements: [
-      { id: "ach-1", title: "Primeiros Passos", description: "Completou o primeiro desafio", icon: "Compass", unlockedAt: "2026-06-10" },
-      { id: "ach-2", title: "Discipulado Fiel", description: "Leitura diária por 7 dias seguidos", icon: "BookOpen", unlockedAt: "2026-06-18" },
-      { id: "ach-3", title: "Evangelista Ativo", description: "Trouxe 3 amigos para a Célula", icon: "Users", unlockedAt: "2026-06-25" }
+      { id: "ins-1", title: "Pescador de Amigos", description: "Levou 1 amigo ao grupo.", unlockedAt: "2026-06-10" },
+      { id: "ins-5", title: "Louvor em Ação", description: "Participou de 5 ministrações.", unlockedAt: "2026-06-18" },
+      { id: "ins-11", title: "Conhecedor da Palavra", description: "Participou de 10 estudos bíblicos.", unlockedAt: "2026-06-25" }
     ]
   },
   {
@@ -56,8 +56,8 @@ export const mockUsers: UserProfile[] = [
     points: 380,
     medals: { gold: 2, silver: 3, bronze: 0 },
     achievements: [
-      { id: "ach-1", title: "Primeiros Passos", description: "Completou o primeiro desafio", icon: "Compass", unlockedAt: "2026-06-11" },
-      { id: "ach-2", title: "Discipulado Fiel", description: "Leitura diária por 7 dias seguidos", icon: "BookOpen", unlockedAt: "2026-06-15" }
+      { id: "ins-1", title: "Pescador de Amigos", description: "Levou 1 amigo ao grupo.", unlockedAt: "2026-06-11" },
+      { id: "ins-8", title: "Mãos que Servem", description: "Ajudou em 3 eventos.", unlockedAt: "2026-06-15" }
     ]
   },
   {
@@ -72,7 +72,7 @@ export const mockUsers: UserProfile[] = [
     points: 290,
     medals: { gold: 1, silver: 1, bronze: 2 },
     achievements: [
-      { id: "ach-1", title: "Primeiros Passos", description: "Completou o primeiro desafio", icon: "Compass", unlockedAt: "2026-06-12" }
+      { id: "ins-15", title: "Presença Fiel", description: "1 mês sem faltas.", unlockedAt: "2026-06-12" }
     ]
   },
   {
@@ -87,7 +87,7 @@ export const mockUsers: UserProfile[] = [
     points: 150,
     medals: { gold: 0, silver: 1, bronze: 1 },
     achievements: [
-      { id: "ach-1", title: "Primeiros Passos", description: "Completou o primeiro desafio", icon: "Compass", unlockedAt: "2026-06-20" }
+      { id: "ins-12", title: "Intercessor", description: "Participou de 3 reuniões de oração.", unlockedAt: "2026-06-20" }
     ]
   }
 ];

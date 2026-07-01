@@ -24,5 +24,17 @@
     { "title": "Comunhão nas Casas", "url": "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&q=80&w=400" },
     { "title": "Ação Social HUIOS", "url": "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&q=80&w=400" },
     { "title": "Gincana e Integração", "url": "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&q=80&w=400" }
-  ]
+  ],
+  "banners": {
+    "header": {
+      "url": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=1200",
+      "title": "A História do Movimento HUIOS",
+      "subtitle": "Entenda o significado por trás do nosso nome, nosso chamado espiritual e como nos organizamos para servir a Deus com integridade e paixão contagiante."
+    },
+    "history": {
+      "url": "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=800",
+      "title": "Unidade & Profundidade",
+      "subtitle": "Encontros focados na busca constante pela excelência."
+    }
+  }
 }
