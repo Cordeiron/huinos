@@ -23,7 +23,7 @@ export default function ChallengesView({
   onCompleteChallenge
 }: ChallengesViewProps) {
   const [activeTab, setActiveTab] = useState<"desafios" | "ranking" | "historico">("desafios");
-  const [rankingPeriod, setRankingPeriod] = useState<"mensal" | "anual" | "geral">("geral");
+  const [rankingPeriod, setRankingPeriod] = useState<"mensal" | "anual">("mensal");
   const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
   
   // Submission form state
@@ -34,18 +34,13 @@ export default function ChallengesView({
 
   // Filter rankings according to period
   const sortedRanking = [...rankingUsers].sort((a, b) => {
-    if (rankingPeriod === "mensal") {
-      // simulate slightly different order for periods
-      return (b.points * 0.7 + b.medals.gold * 30) - (a.points * 0.7 + a.medals.gold * 30);
-    } else if (rankingPeriod === "anual") {
-      return (b.points * 0.9 + b.medals.silver * 15) - (a.points * 0.9 + a.medals.silver * 15);
-    }
-    return b.points - a.points; // general
+    return b.points - a.points;
   });
 
   const top10Ranking = sortedRanking.slice(0, 10);
 
-  const activeChallenges = challenges.filter((c) => c.active);
+  const todayStr = new Date().toISOString().split("T")[0];
+  const activeChallenges = challenges.filter((c) => c.active && (!c.endDate || c.endDate >= todayStr));
 
   const handleOpenSubmission = (challenge: Challenge) => {
     setSelectedChallenge(challenge);
@@ -70,16 +65,16 @@ export default function ChallengesView({
     setTimeout(() => setShowSuccess(false), 5000);
   };
 
-  const getMedalIcon = (index: number) => {
+  const getRankBadge = (index: number) => {
     switch (index) {
       case 0:
-        return <span className="text-xl shrink-0">🥇</span>;
+        return <span className="text-xs font-mono font-black text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md shrink-0">#1</span>;
       case 1:
-        return <span className="text-xl shrink-0">🥈</span>;
+        return <span className="text-xs font-mono font-black text-slate-400 bg-slate-400/10 px-2 py-0.5 rounded-md shrink-0">#2</span>;
       case 2:
-        return <span className="text-xl shrink-0">🥉</span>;
+        return <span className="text-xs font-mono font-black text-amber-700 bg-amber-700/10 px-2 py-0.5 rounded-md shrink-0">#3</span>;
       default:
-        return <span className="text-xs font-mono font-bold text-neutral-400 shrink-0 w-5 text-center">#{index + 1}</span>;
+        return <span className="text-xs font-mono font-bold text-neutral-400 px-2 py-0.5 shrink-0">#{index + 1}</span>;
     }
   };
 
@@ -102,10 +97,10 @@ export default function ChallengesView({
           <span>DESAFIOS & RANKING</span>
         </div>
         <h2 className="font-display text-2xl md:text-4xl font-black text-neutral-800 dark:text-white">
-          Desafio Jovem & Medalhas
+          Desafio Jovem
         </h2>
         <p className="text-xs text-neutral-500 dark:text-neutral-400">
-          Mergulhe de cabeça na Palavra e no serviço! Conclua desafios semanais, ganhe pontos no ranking do grupo, desbloqueie medalhas exclusivas e seja edificado.
+          Mergulhe de cabeça na Palavra e no serviço! Conclua desafios semanais, ganhe pontos no ranking do grupo e seja edificado.
         </p>
       </section>
 
@@ -140,7 +135,7 @@ export default function ChallengesView({
                 : "border-transparent text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
             }`}
           >
-            📜 Seus Envios & Medalhas
+            📜 Seus Envios
           </button>
         </div>
       </section>
@@ -151,7 +146,7 @@ export default function ChallengesView({
           <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
           <div>
             <p className="text-xs font-bold text-emerald-800 dark:text-emerald-400">Desafio enviado com sucesso!</p>
-            <p className="text-[10px] text-emerald-600/90 mt-0.5">Sua participação foi enviada para validação da liderança. Após a aprovação, seus pontos e medalhas serão creditados!</p>
+            <p className="text-[10px] text-emerald-600/90 mt-0.5">Sua participação foi enviada para validação da liderança. Após a aprovação, seus pontos serão creditados!</p>
           </div>
         </div>
       )}
@@ -242,7 +237,7 @@ export default function ChallengesView({
               Classificação dos Jovens
             </h3>
             <div className="flex gap-1">
-              {(["mensal", "anual", "geral"] as const).map((p) => (
+              {(["mensal", "anual"] as const).map((p) => (
                 <button
                   key={p}
                   onClick={() => setRankingPeriod(p)}
@@ -339,7 +334,7 @@ export default function ChallengesView({
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  {getMedalIcon(index)}
+                  {getRankBadge(index)}
                   <div className="h-8 w-8 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 flex items-center justify-center text-[10px] font-black uppercase shrink-0">
                     {user.name.slice(0, 2)}
                   </div>
@@ -357,11 +352,6 @@ export default function ChallengesView({
                   <p className="text-xs font-mono font-bold text-red-600 dark:text-red-500">
                     {user.points} pts
                   </p>
-                  <div className="flex gap-0.5 justify-end mt-0.5 text-[8px] text-neutral-400">
-                    <span>🥇 {user.medals.gold}</span>
-                    <span>🥈 {user.medals.silver}</span>
-                    <span>🥉 {user.medals.bronze}</span>
-                  </div>
                 </div>
               </div>
             ))}
@@ -369,28 +359,9 @@ export default function ChallengesView({
         </div>
       )}
 
-      {/* TAB 3: USER HISTORY & MEDALS */}
+      {/* TAB 3: USER HISTORY */}
       {activeTab === "historico" && (
         <div className="max-w-2xl mx-auto space-y-8 text-left">
-          {/* Medal grid summary for active user */}
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="bg-gradient-to-br from-amber-50 to-white dark:from-amber-950/20 dark:to-neutral-900 rounded-2xl p-4 border border-amber-200/40">
-              <span className="text-3xl block">🥇</span>
-              <span className="block text-lg font-black font-mono text-neutral-800 dark:text-white mt-1">{activeUser.medals.gold}</span>
-              <span className="text-[9px] font-bold uppercase text-neutral-400">Medalhas de Ouro</span>
-            </div>
-            <div className="bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/40 dark:to-neutral-900 rounded-2xl p-4 border border-slate-200/40">
-              <span className="text-3xl block">🥈</span>
-              <span className="block text-lg font-black font-mono text-neutral-800 dark:text-white mt-1">{activeUser.medals.silver}</span>
-              <span className="text-[9px] font-bold uppercase text-neutral-400">Medalhas de Prata</span>
-            </div>
-            <div className="bg-gradient-to-br from-amber-900/5 to-white dark:from-amber-950/20 dark:to-neutral-900 rounded-2xl p-4 border border-amber-900/10">
-              <span className="text-3xl block">🥉</span>
-              <span className="block text-lg font-black font-mono text-neutral-800 dark:text-white mt-1">{activeUser.medals.bronze}</span>
-              <span className="text-[9px] font-bold uppercase text-neutral-400">Medalhas de Bronze</span>
-            </div>
-          </div>
-
           {/* Submission history list */}
           <div className="space-y-3">
             <h3 className="font-display text-sm font-bold text-neutral-800 dark:text-neutral-200 flex items-center gap-1.5">

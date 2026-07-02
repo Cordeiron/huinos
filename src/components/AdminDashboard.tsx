@@ -5,7 +5,7 @@
 
 import React, { useState } from "react";
 import {
-  TrendingUp, Users, Heart, FileText, Calendar, Award, Lightbulb, Bell, Settings, Plus, Trash2, Check, X, ShieldAlert, BookOpen, Clock, PlayCircle
+  TrendingUp, Users, Heart, FileText, Calendar, Award, Lightbulb, Bell, Settings, Plus, Trash2, Check, X, ShieldAlert, BookOpen, Clock, PlayCircle, Edit, Image
 } from "lucide-react";
 import {
   UserRole, UserProfile, EventItem, NewsItem, Announcement, PrayerRequest, SuggestionItem, Challenge, ChallengeSubmission, SystemNotification, VerseOfTheWeek, AccessLog
@@ -34,8 +34,13 @@ interface AdminDashboardProps {
   onAddNews: (title: string, subtitle: string, content: string, category: "Geral" | "Avisos" | "Acampamento" | "Espiritual" | "Eventos", author: string, coverImage: string) => void;
   onDeleteNews: (id: string) => void;
   onAddEvent: (title: string, description: string, date: string, time: string, address: string, category: any, responsible: string, mapEmbedUrl?: string, imageUrl?: string) => void;
+  onUpdateEvent: (id: string, eventData: any) => void;
   onDeleteEvent: (id: string) => void;
   onAddChallenge: (title: string, description: string, startDate: string, endDate: string, prize: string, maxWinners: number, points: number, imageUrl: string) => void;
+  onUpdateChallenge: (id: string, chalData: any) => void;
+  onDeleteChallenge: (id: string) => void;
+  galleryImages: string[];
+  onAddGalleryImage: (url: string) => void;
   onApproveSubmission: (id: string, feedback: string) => void;
   onRejectSubmission: (id: string, feedback: string) => void;
   onReplyPrayer: (id: string, response: string, status: "Novo" | "Em oração" | "Respondido") => void;
@@ -82,8 +87,13 @@ export default function AdminDashboard({
   onAddNews,
   onDeleteNews,
   onAddEvent,
+  onUpdateEvent,
   onDeleteEvent,
   onAddChallenge,
+  onUpdateChallenge,
+  onDeleteChallenge,
+  galleryImages = [],
+  onAddGalleryImage,
   onApproveSubmission,
   onRejectSubmission,
   onReplyPrayer,
@@ -91,7 +101,7 @@ export default function AdminDashboard({
   onSendNotification,
   onUpdateSettings
 }: AdminDashboardProps) {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "news" | "events" | "challenges" | "prayers" | "suggestions" | "notifications" | "settings" | "users">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "news" | "events" | "challenges" | "prayers" | "suggestions" | "notifications" | "settings" | "users" | "gallery">("dashboard");
 
   // User management states
   const [usersList, setUsersList] = useState<any[]>([]);
@@ -122,6 +132,13 @@ export default function AdminDashboard({
   };
 
   const birthdaysToday = getBirthdaysToday();
+  const activeUsersCount = React.useMemo(() => {
+    if (!accessLogs || accessLogs.length === 0) return 0;
+    // Count unique users who logged in or performed actions
+    const uniqueUsernames = new Set(accessLogs.map(log => log.userName.trim().toLowerCase()));
+    return uniqueUsernames.size;
+  }, [accessLogs]);
+
   const [usersLoading, setUsersLoading] = useState(false);
   const [userFormName, setUserFormName] = useState("");
   const [userFormEmail, setUserFormEmail] = useState("");
@@ -283,6 +300,9 @@ export default function AdminDashboard({
   const [newsCat, setNewsCat] = useState<any>("Geral");
   const [newsCover, setNewsCover] = useState("");
 
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [editingChallengeId, setEditingChallengeId] = useState<string | null>(null);
+
   const [evtTitle, setEvtTitle] = useState("");
   const [evtDesc, setEvtDesc] = useState("");
   const [evtDate, setEvtDate] = useState("");
@@ -328,7 +348,24 @@ export default function AdminDashboard({
   const handleCreateEvent = (e: React.FormEvent) => {
     e.preventDefault();
     if (!evtTitle || !evtDate || !evtTime || !evtAddr) return;
-    onAddEvent(evtTitle, evtDesc, evtDate, evtTime, evtAddr, evtCat, evtResp, evtMap, evtImg);
+    if (editingEventId) {
+      onUpdateEvent(editingEventId, {
+        title: evtTitle,
+        description: evtDesc,
+        date: evtDate,
+        time: evtTime,
+        address: evtAddr,
+        category: evtCat,
+        responsible: evtResp,
+        mapEmbedUrl: evtMap,
+        imageUrl: evtImg
+      });
+      setEditingEventId(null);
+      showToast("Evento atualizado com sucesso!");
+    } else {
+      onAddEvent(evtTitle, evtDesc, evtDate, evtTime, evtAddr, evtCat, evtResp, evtMap, evtImg);
+      showToast("Evento adicionado com sucesso!");
+    }
     setEvtTitle("");
     setEvtDesc("");
     setEvtDate("");
@@ -337,20 +374,79 @@ export default function AdminDashboard({
     setEvtResp("");
     setEvtMap("");
     setEvtImg("");
-    showToast("Evento adicionado com sucesso!");
+  };
+
+  const startEditEvent = (evt: EventItem) => {
+    setEditingEventId(evt.id);
+    setEvtTitle(evt.title || "");
+    setEvtDesc(evt.description || "");
+    setEvtDate(evt.date || "");
+    setEvtTime(evt.time || "");
+    setEvtAddr(evt.address || "");
+    setEvtCat(evt.category || "Culto");
+    setEvtResp(evt.responsible || "");
+    setEvtMap(evt.mapEmbedUrl || "");
+    setEvtImg(evt.imageUrl || "");
+  };
+
+  const cancelEditEvent = () => {
+    setEditingEventId(null);
+    setEvtTitle("");
+    setEvtDesc("");
+    setEvtDate("");
+    setEvtTime("");
+    setEvtAddr("");
+    setEvtResp("");
+    setEvtMap("");
+    setEvtImg("");
   };
 
   const handleCreateChallenge = (e: React.FormEvent) => {
     e.preventDefault();
     if (!chalTitle || !chalEnd) return;
-    onAddChallenge(chalTitle, chalDesc, chalStart || "2026-06-30", chalEnd, chalPrize || "Medalha de Honra", 3, chalPoints, chalImg || "https://images.unsplash.com/photo-1504052434569-70ad58565b90?auto=format&fit=crop&q=80&w=600");
+    if (editingChallengeId) {
+      onUpdateChallenge(editingChallengeId, {
+        title: chalTitle,
+        description: chalDesc,
+        startDate: chalStart || "2026-06-30",
+        endDate: chalEnd,
+        prize: chalPrize || "Prêmio de Honra",
+        points: chalPoints,
+        imageUrl: chalImg || "https://images.unsplash.com/photo-1504052434569-70ad58565b90?auto=format&fit=crop&q=80&w=600"
+      });
+      setEditingChallengeId(null);
+      showToast("Desafio atualizado com sucesso!");
+    } else {
+      onAddChallenge(chalTitle, chalDesc, chalStart || "2026-06-30", chalEnd, chalPrize || "Prêmio de Honra", 3, chalPoints, chalImg || "https://images.unsplash.com/photo-1504052434569-70ad58565b90?auto=format&fit=crop&q=80&w=600");
+      showToast("Desafio criado com sucesso!");
+    }
     setChalTitle("");
     setChalDesc("");
     setChalStart("");
     setChalEnd("");
     setChalPrize("");
     setChalImg("");
-    showToast("Desafio criado com sucesso!");
+  };
+
+  const startEditChallenge = (chal: Challenge) => {
+    setEditingChallengeId(chal.id);
+    setChalTitle(chal.title || "");
+    setChalDesc(chal.description || "");
+    setChalStart(chal.startDate || "");
+    setChalEnd(chal.endDate || "");
+    setChalPrize(chal.prize || "");
+    setChalPoints(chal.points || 100);
+    setChalImg(chal.imageUrl || "");
+  };
+
+  const cancelEditChallenge = () => {
+    setEditingChallengeId(null);
+    setChalTitle("");
+    setChalDesc("");
+    setChalStart("");
+    setChalEnd("");
+    setChalPrize("");
+    setChalImg("");
   };
 
   const handleSendNotification = (e: React.FormEvent) => {
@@ -412,6 +508,7 @@ export default function AdminDashboard({
               ]
             : []),
           { id: "notifications", label: "Notificações", icon: Bell },
+          { id: "gallery", label: "Banco de Imagens", icon: Image },
           { id: "settings", label: "Configurações", icon: Settings }
         ].map((tab) => {
           const Icon = tab.icon;
@@ -468,40 +565,54 @@ export default function AdminDashboard({
               <div>
                 <h3 className="font-display text-xs font-bold text-white flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-[#C62828]" />
-                  <span>Engajamento Semanal (Histórico)</span>
+                  <span>Engajamento de Participação</span>
                 </h3>
               </div>
               
+              {/* Counter Display */}
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-4xl font-black text-white tracking-tight">{activeUsersCount}</span>
+                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider font-mono bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                  Usuários Ativos Online
+                </span>
+              </div>
+
               {/* Custom SVG Line Chart */}
-              <div className="h-44 w-full pt-4">
-                <svg viewBox="0 0 500 150" className="w-full h-full text-[#C62828]">
+              <div className="h-32 w-full pt-2">
+                <svg viewBox="0 0 500 120" className="w-full h-full text-[#C62828]">
                   <defs>
                     <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
                       <feGaussianBlur stdDeviation="3" result="blur" />
                       <feComposite in="SourceGraphic" in2="blur" operator="over" />
                     </filter>
                   </defs>
+                  
+                  {/* Grid lines */}
+                  <line x1="20" y1="20" x2="480" y2="20" stroke="rgba(255,255,255,0.02)" strokeWidth="1" />
+                  <line x1="20" y1="60" x2="480" y2="60" stroke="rgba(255,255,255,0.02)" strokeWidth="1" />
+                  <line x1="20" y1="100" x2="480" y2="100" stroke="rgba(255,255,255,0.02)" strokeWidth="1" />
+
                   <path
-                    d="M 20 120 Q 100 80 180 90 T 340 40 T 480 20"
+                    d={`M 20 100 Q 150 ${100 - activeUsersCount * 8} 300 ${100 - activeUsersCount * 12} T 480 ${100 - activeUsersCount * 15}`}
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="4"
                     strokeLinecap="round"
                     filter="url(#glow)"
                   />
-                  <circle cx="20" cy="120" r="5" fill="currentColor" />
-                  <circle cx="180" cy="90" r="5" fill="currentColor" />
-                  <circle cx="340" cy="40" r="5" fill="currentColor" />
-                  <circle cx="480" cy="20" r="5" fill="currentColor" />
+                  <circle cx="20" cy="100" r="5" fill="currentColor" />
+                  <circle cx="200" cy={Math.max(10, 100 - activeUsersCount * 10)} r="5" fill="currentColor" />
+                  <circle cx="350" cy={Math.max(10, 100 - activeUsersCount * 12)} r="5" fill="currentColor" />
+                  <circle cx="480" cy={Math.max(10, 100 - activeUsersCount * 15)} r="5" fill="currentColor" />
                   
                   {/* labels */}
-                  <text x="20" y="145" fontSize="9" fill="#999">Semana 1</text>
-                  <text x="180" y="145" fontSize="9" fill="#999">Semana 2</text>
-                  <text x="340" y="145" fontSize="9" fill="#999">Semana 3</text>
-                  <text x="430" y="145" fontSize="9" fill="#999">Semana Ativa</text>
+                  <text x="20" y="115" fontSize="9" fill="#666">Membros</text>
+                  <text x="200" y="115" fontSize="9" fill="#666">Registrados</text>
+                  <text x="350" y="115" fontSize="9" fill="#666">Acessando</text>
+                  <text x="440" y="115" fontSize="9" fill="#999">Hoje</text>
                 </svg>
               </div>
-              <p className="text-[10px] text-neutral-400 text-center font-light">Crescimento contínuo de desafios concluídos e interações no sistema HUIOS.</p>
+              <p className="text-[10px] text-neutral-400 text-center font-light">Quantidade de membros que acessaram e interagiram na plataforma recentemente.</p>
             </div>
 
             {/* 🎉 Birthdays of the Day (lg:col-span-4) */}
@@ -546,19 +657,29 @@ export default function AdminDashboard({
                 <Clock className="h-4.5 w-4.5 text-[#C62828]" />
                 <span>Auditoria de Acessos</span>
               </h3>
-
+ 
               <div className="space-y-3 max-h-64 overflow-y-auto pr-1 flex-1">
-                {accessLogs.map((log) => (
-                  <div key={log.id} className="text-[10px] border-b border-white/5 pb-2.5 flex justify-between items-start last:border-0 last:pb-0">
-                    <div>
-                      <p className="font-bold text-white truncate max-w-[120px]">
-                        {log.userName}
-                      </p>
-                      <p className="text-neutral-400 mt-0.5 text-[9px]">{log.action}</p>
+                {accessLogs
+                  .filter((log) => log.role === UserRole.LEADER || log.role === "Líder" || log.role === UserRole.ADMIN || log.role === "Administrador")
+                  .map((log) => (
+                    <div key={log.id} className="text-[10px] border-b border-white/5 pb-2.5 flex justify-between items-start last:border-0 last:pb-0">
+                      <div>
+                        <div className="flex items-center gap-1">
+                          <p className="font-bold text-white truncate max-w-[120px]">
+                            {log.userName}
+                          </p>
+                          <span className="text-[7px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#C62828]/10 text-[#C62828] scale-90">
+                            Líder
+                          </span>
+                        </div>
+                        <p className="text-neutral-400 mt-0.5 text-[9px]">{log.action}</p>
+                      </div>
+                      <span className="font-mono text-neutral-500 text-[8px] shrink-0">{log.timestamp}</span>
                     </div>
-                    <span className="font-mono text-neutral-500 text-[8px] shrink-0">{log.timestamp}</span>
-                  </div>
-                ))}
+                  ))}
+                {accessLogs.filter((log) => log.role === UserRole.LEADER || log.role === "Líder" || log.role === UserRole.ADMIN || log.role === "Administrador").length === 0 && (
+                  <p className="text-[10px] text-neutral-400 italic text-center py-4">Nenhuma ação de liderança registrada.</p>
+                )}
               </div>
             </div>
           </div>
@@ -688,7 +809,7 @@ export default function AdminDashboard({
           <div className="bg-[#252525] rounded-3xl p-6 border border-white/5 shadow-xl space-y-5">
             <h3 className="font-display text-sm font-bold text-white flex items-center gap-1.5">
               <Plus className="h-4.5 w-4.5 text-[#C62828]" />
-              <span>Cadastrar Novo Evento</span>
+              <span>{editingEventId ? "Editar Evento" : "Cadastrar Novo Evento"}</span>
             </h3>
 
             <form onSubmit={handleCreateEvent} className="space-y-4">
@@ -803,12 +924,23 @@ export default function AdminDashboard({
                 </div>
               </div>
 
-              <button
-                type="submit"
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#C62828] text-white text-xs font-bold py-2.5 shadow-md hover:bg-red-700 transition-colors"
-              >
-                <span>Adicionar ao Calendário</span>
-              </button>
+              <div className="flex gap-2">
+                {editingEventId && (
+                  <button
+                    type="button"
+                    onClick={cancelEditEvent}
+                    className="flex-1 rounded-xl bg-neutral-800 text-neutral-300 text-xs font-bold py-2.5 hover:bg-neutral-700 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  className="flex-[2] flex items-center justify-center gap-2 rounded-xl bg-[#C62828] text-white text-xs font-bold py-2.5 shadow-md hover:bg-red-700 transition-colors"
+                >
+                  <span>{editingEventId ? "Salvar Alterações" : "Adicionar ao Calendário"}</span>
+                </button>
+              </div>
             </form>
           </div>
 
@@ -827,15 +959,25 @@ export default function AdminDashboard({
                     <p className="text-[9px] text-neutral-500 truncate max-w-[200px] mt-0.5">{item.address}</p>
                   </div>
 
-                  <button
-                    onClick={() => {
-                      onDeleteEvent(item.id);
-                      showToast("Evento removido!");
-                    }}
-                    className="p-2 rounded-xl text-neutral-400 hover:text-white hover:bg-white/5 transition-colors shrink-0"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex gap-1 shrink-0">
+                    <button
+                      onClick={() => startEditEvent(item)}
+                      className="p-2 rounded-xl text-neutral-400 hover:text-white hover:bg-white/5 transition-colors"
+                      title="Editar Evento"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        onDeleteEvent(item.id);
+                        showToast("Evento removido!");
+                      }}
+                      className="p-2 rounded-xl text-neutral-400 hover:text-red-500 hover:bg-white/5 transition-colors"
+                      title="Excluir Evento"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -846,92 +988,146 @@ export default function AdminDashboard({
       {/* TAB 4: CHALLENGES & PROOFS MODERATOR */}
       {activeTab === "challenges" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start animate-in fade-in duration-200">
-          {/* Add Challenge */}
-          <div className="bg-[#252525] rounded-3xl p-6 border border-white/5 shadow-xl space-y-5">
-            <h3 className="font-display text-sm font-bold text-white flex items-center gap-1.5">
-              <Plus className="h-4.5 w-4.5 text-[#C62828]" />
-              <span>Criar Desafio Jovem</span>
-            </h3>
+          {/* Add / Edit Challenge */}
+          <div className="space-y-6">
+            <div className="bg-[#252525] rounded-3xl p-6 border border-white/5 shadow-xl space-y-5">
+              <h3 className="font-display text-sm font-bold text-white flex items-center gap-1.5">
+                <Plus className="h-4.5 w-4.5 text-[#C62828]" />
+                <span>{editingChallengeId ? "Editar Desafio Jovem" : "Criar Desafio Jovem"}</span>
+              </h3>
 
-            <form onSubmit={handleCreateChallenge} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold text-neutral-400 uppercase">Título do Desafio</label>
-                <input
-                  type="text"
-                  value={chalTitle}
-                  onChange={(e) => setChalTitle(e.target.value)}
-                  placeholder="Ex: Leia João capítulo 3"
-                  required
-                  className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 rounded-xl outline-none text-white focus:border-[#C62828]/50"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold text-neutral-400 uppercase">Descrição / Tarefas</label>
-                <textarea
-                  value={chalDesc}
-                  onChange={(e) => setChalDesc(e.target.value)}
-                  rows={3}
-                  placeholder="Explique os requisitos mínimos para o jovem concluir com sucesso..."
-                  className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 rounded-xl outline-none text-white resize-none focus:border-[#C62828]/50"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+              <form onSubmit={handleCreateChallenge} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-neutral-400 uppercase">Pontuação Concedida</label>
+                  <label className="text-[9px] font-bold text-neutral-400 uppercase">Título do Desafio</label>
                   <input
-                    type="number"
-                    value={chalPoints}
-                    onChange={(e) => setChalPoints(parseInt(e.target.value) || 100)}
+                    type="text"
+                    value={chalTitle}
+                    onChange={(e) => setChalTitle(e.target.value)}
+                    placeholder="Ex: Leia João capítulo 3"
                     required
                     className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 rounded-xl outline-none text-white focus:border-[#C62828]/50"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-neutral-400 uppercase">Prêmio Recomendado</label>
-                  <input
-                    type="text"
-                    value={chalPrize}
-                    onChange={(e) => setChalPrize(e.target.value)}
-                    placeholder="Ex: Livro Cristão Clássico"
-                    className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 rounded-xl outline-none text-white focus:border-[#C62828]/50"
+                  <label className="text-[9px] font-bold text-neutral-400 uppercase">Descrição / Tarefas</label>
+                  <textarea
+                    value={chalDesc}
+                    onChange={(e) => setChalDesc(e.target.value)}
+                    rows={3}
+                    placeholder="Explique os requisitos mínimos para o jovem concluir com sucesso..."
+                    className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 rounded-xl outline-none text-white resize-none focus:border-[#C62828]/50"
                   />
                 </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-neutral-400 uppercase">Pontuação Concedida</label>
+                    <input
+                      type="number"
+                      value={chalPoints}
+                      onChange={(e) => setChalPoints(parseInt(e.target.value) || 100)}
+                      required
+                      className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 rounded-xl outline-none text-white focus:border-[#C62828]/50"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-neutral-400 uppercase">Prêmio Recomendado</label>
+                    <input
+                      type="text"
+                      value={chalPrize}
+                      onChange={(e) => setChalPrize(e.target.value)}
+                      placeholder="Ex: Livro Cristão Clássico"
+                      className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 rounded-xl outline-none text-white focus:border-[#C62828]/50"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-neutral-400 uppercase">Data Limite de Envio</label>
+                    <input
+                      type="date"
+                      value={chalEnd}
+                      onChange={(e) => setChalEnd(e.target.value)}
+                      required
+                      className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 rounded-xl outline-none text-white focus:border-[#C62828]/50"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-neutral-400 uppercase">Imagem Ilustrativa (URL)</label>
+                    <input
+                      type="text"
+                      value={chalImg}
+                      onChange={(e) => setChalImg(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 rounded-xl outline-none text-white focus:border-[#C62828]/50"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  {editingChallengeId && (
+                    <button
+                      type="button"
+                      onClick={cancelEditChallenge}
+                      className="flex-1 rounded-xl bg-neutral-800 text-neutral-300 text-xs font-bold py-2.5 hover:bg-neutral-700 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="flex-[2] flex items-center justify-center gap-2 rounded-xl bg-[#C62828] text-white text-xs font-bold py-2.5 shadow-md hover:bg-red-700 transition-colors"
+                  >
+                    <span>{editingChallengeId ? "Salvar Alterações" : "Liberar Desafio Jovem"}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* List and Manage Challenges */}
+            <div className="bg-[#252525] rounded-3xl p-6 border border-white/5 shadow-xl space-y-4">
+              <h3 className="font-display text-sm font-bold text-white flex items-center gap-1.5">
+                <Award className="h-4.5 w-4.5 text-[#C62828]" />
+                <span>Gerenciamento de Desafios ({challenges.length})</span>
+              </h3>
+
+              <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+                {challenges.map((chal) => (
+                  <div key={chal.id} className="flex gap-4 border-b border-white/5 pb-3 last:border-0 last:pb-0 justify-between items-center text-xs bg-[#1B1B1B]/20 p-2.5 rounded-xl">
+                    <div className="truncate max-w-[240px]">
+                      <h4 className="font-bold text-white truncate">{chal.title}</h4>
+                      <p className="text-[9px] text-neutral-400 mt-1">Expira em: <span className="text-white font-medium">{chal.endDate}</span> — <span className="text-red-400 font-bold">{chal.points} pts</span></p>
+                    </div>
+
+                    <div className="flex gap-1 shrink-0">
+                      <button
+                        onClick={() => startEditChallenge(chal)}
+                        className="p-2 rounded-xl text-neutral-400 hover:text-white hover:bg-white/5 transition-colors"
+                        title="Editar Desafio"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm("Tem certeza que deseja apagar este desafio?")) {
+                            onDeleteChallenge(chal.id);
+                            showToast("Desafio excluído com sucesso!");
+                          }
+                        }}
+                        className="p-2 rounded-xl text-neutral-400 hover:text-red-500 hover:bg-white/5 transition-colors"
+                        title="Apagar Desafio"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-neutral-400 uppercase">Data Limite de Envio</label>
-                  <input
-                    type="date"
-                    value={chalEnd}
-                    onChange={(e) => setChalEnd(e.target.value)}
-                    required
-                    className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 rounded-xl outline-none text-white focus:border-[#C62828]/50"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-neutral-400 uppercase">Imagem Ilustrativa (URL)</label>
-                  <input
-                    type="text"
-                    value={chalImg}
-                    onChange={(e) => setChalImg(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 rounded-xl outline-none text-white focus:border-[#C62828]/50"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#C62828] text-white text-xs font-bold py-2.5 shadow-md hover:bg-red-700 transition-colors"
-              >
-                <span>Liberar Desafio Jovem</span>
-              </button>
-            </form>
+            </div>
           </div>
 
           {/* Review Pending submissions (Desafios Pendentes) */}
@@ -1269,6 +1465,137 @@ export default function AdminDashboard({
               <span>Transmitir Alerta</span>
             </button>
           </form>
+        </div>
+      )}
+
+      {/* TAB 8: IMAGE GALLERY */}
+      {activeTab === "gallery" && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          <div className="bg-[#252525] rounded-3xl p-6 border border-white/5 shadow-xl space-y-5">
+            <h3 className="font-display text-sm font-bold text-white flex items-center gap-1.5">
+              <Image className="h-4.5 w-4.5 text-[#C62828]" />
+              <span>Banco de Imagens Compartilhado</span>
+            </h3>
+            <p className="text-xs text-neutral-400 leading-relaxed">
+              Adicione links de imagens ou use as imagens recomendadas do portal. Você pode copiar o link de qualquer imagem clicando nela para usar nos banners, desafios, notícias ou eventos!
+            </p>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const form = e.currentTarget;
+                const input = form.elements.namedItem("imageUrl") as HTMLInputElement;
+                if (input && input.value) {
+                  onAddGalleryImage(input.value);
+                  input.value = "";
+                  showToast("Imagem adicionada à galeria!");
+                }
+              }}
+              className="flex gap-2"
+            >
+              <input
+                name="imageUrl"
+                type="text"
+                required
+                placeholder="Insira a URL de uma nova imagem (https://...)"
+                className="flex-1 py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 rounded-xl outline-none text-white focus:border-[#C62828]/50"
+              />
+              <button
+                type="submit"
+                className="bg-[#C62828] text-white text-xs font-bold px-4 rounded-xl shadow-md hover:bg-red-700 transition-colors shrink-0"
+              >
+                Salvar Imagem
+              </button>
+            </form>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Custom Admin Images */}
+            <div className="bg-[#252525] rounded-3xl p-6 border border-white/5 shadow-xl space-y-4">
+              <h4 className="font-display text-xs font-bold text-white uppercase tracking-wider text-neutral-400">
+                Imagens Adicionadas ({galleryImages.length})
+              </h4>
+              
+              {galleryImages.length === 0 ? (
+                <div className="text-center py-12 rounded-2xl border border-dashed border-white/10">
+                  <p className="text-xs text-neutral-400 italic">Nenhuma imagem personalizada adicionada ainda.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-1">
+                  {galleryImages.map((imgUrl, i) => (
+                    <div key={i} className="group relative bg-[#1B1B1B] rounded-xl overflow-hidden border border-white/5 shadow">
+                      <img
+                        src={imgUrl}
+                        alt={`Galeria ${i}`}
+                        className="w-full h-24 object-cover group-hover:scale-105 transition-transform duration-300"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.currentTarget.src = "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=400";
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
+                        <span className="text-[8px] text-neutral-300 truncate font-mono">{imgUrl}</span>
+                        <div className="flex gap-1.5 justify-end">
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(imgUrl);
+                              showToast("Link copiado para a área de transferência!");
+                            }}
+                            className="bg-[#C62828] text-white text-[9px] font-bold py-1 px-2 rounded-lg hover:bg-red-700 transition-colors"
+                          >
+                            Copiar Link
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Standard System Images */}
+            <div className="bg-[#252525] rounded-3xl p-6 border border-white/5 shadow-xl space-y-4">
+              <h4 className="font-display text-xs font-bold text-white uppercase tracking-wider text-neutral-400">
+                Imagens Disponíveis no Site (Padrão)
+              </h4>
+              
+              <div className="grid grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-1">
+                {[
+                  { title: "Louvor & Adoração", url: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=800" },
+                  { title: "Comunhão", url: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&q=80&w=800" },
+                  { title: "Ação Solidária", url: "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&q=80&w=800" },
+                  { title: "Integração", url: "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&q=80&w=800" },
+                  { title: "Capacitação", url: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=800" },
+                  { title: "Estudos Bíblicos", url: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&q=80&w=800" },
+                  { title: "Acampamento Jovem", url: "https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?auto=format&fit=crop&q=80&w=800" },
+                  { title: "Desafios Recompensas", url: "https://images.unsplash.com/photo-1504052434569-70ad58565b90?auto=format&fit=crop&q=80&w=800" }
+                ].map((img, i) => (
+                  <div key={i} className="group relative bg-[#1B1B1B] rounded-xl overflow-hidden border border-white/5 shadow">
+                    <img
+                      src={img.url}
+                      alt={img.title}
+                      className="w-full h-24 object-cover group-hover:scale-105 transition-transform duration-300"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
+                      <span className="text-[10px] text-white font-bold truncate">{img.title}</span>
+                      <div className="flex gap-1.5 justify-end">
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(img.url);
+                            showToast(`Link para "${img.title}" copiado!`);
+                          }}
+                          className="bg-[#C62828] text-white text-[9px] font-bold py-1 px-2 rounded-lg hover:bg-red-700 transition-colors"
+                        >
+                          Copiar Link
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

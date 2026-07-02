@@ -435,7 +435,9 @@ export const db = {
       console.error("Erro ao buscar comunicados do Supabase:", error);
       return [];
     }
-    return (data || []).map(mapAnnFromDb);
+    return (data || [])
+      .filter((row: any) => row.id !== "system-image-gallery")
+      .map(mapAnnFromDb);
   },
 
   async createAnnouncement(ann: any): Promise<any> {
@@ -583,6 +585,32 @@ export const db = {
       throw new Error(error.message);
     }
     return true;
+  },
+
+  async updateEvent(id: string, updates: any): Promise<any> {
+    const dbPayload: any = {};
+    if (updates.title !== undefined) dbPayload.title = updates.title;
+    if (updates.description !== undefined) dbPayload.description = updates.description;
+    if (updates.date !== undefined) dbPayload.date = updates.date;
+    if (updates.time !== undefined) dbPayload.time = updates.time;
+    if (updates.address !== undefined) dbPayload.address = updates.address;
+    if (updates.mapEmbedUrl !== undefined) dbPayload.map_embed_url = updates.mapEmbedUrl;
+    if (updates.responsible !== undefined) dbPayload.responsible = updates.responsible;
+    if (updates.category !== undefined) dbPayload.category = updates.category;
+    if (updates.imageUrl !== undefined) dbPayload.image_url = updates.imageUrl;
+
+    const { data, error } = await supabase
+      .from("events")
+      .update(dbPayload)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error(`Erro ao atualizar evento (${id}) no Supabase:`, error);
+      throw new Error(error.message);
+    }
+    return mapEventFromDb(data);
   },
 
   // --- PRAYER REQUESTS ---
@@ -754,6 +782,45 @@ export const db = {
       throw new Error(error.message);
     }
     return mapChallengeFromDb(data);
+  },
+
+  async updateChallenge(id: string, updates: any): Promise<any> {
+    const dbPayload: any = {};
+    if (updates.title !== undefined) dbPayload.title = updates.title;
+    if (updates.description !== undefined) dbPayload.description = updates.description;
+    if (updates.imageUrl !== undefined) dbPayload.image_url = updates.imageUrl;
+    if (updates.startDate !== undefined) dbPayload.start_date = updates.startDate;
+    if (updates.endDate !== undefined) dbPayload.end_date = updates.endDate;
+    if (updates.prize !== undefined) dbPayload.prize = updates.prize;
+    if (updates.maxWinners !== undefined) dbPayload.max_winners = Number(updates.maxWinners);
+    if (updates.points !== undefined) dbPayload.points = Number(updates.points);
+    if (updates.active !== undefined) dbPayload.active = !!updates.active;
+
+    const { data, error } = await supabase
+      .from("challenges")
+      .update(dbPayload)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error(`Erro ao atualizar desafio (${id}) no Supabase:`, error);
+      throw new Error(error.message);
+    }
+    return mapChallengeFromDb(data);
+  },
+
+  async deleteChallenge(id: string): Promise<boolean> {
+    const { error } = await supabase
+      .from("challenges")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error(`Erro ao deletar desafio (${id}) no Supabase:`, error);
+      throw new Error(error.message);
+    }
+    return true;
   },
 
   // --- CHALLENGE SUBMISSIONS ---
@@ -986,5 +1053,61 @@ export const db = {
       console.error("Erro ao registrar log de ação no Supabase:", error);
     }
     return mapLogFromDb(data);
+  },
+
+  async getGalleryImages(): Promise<string[]> {
+    const { data, error } = await supabase
+      .from("announcements")
+      .select("*")
+      .eq("id", "system-image-gallery")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Erro ao buscar imagens da galeria no Supabase:", error);
+      return [];
+    }
+
+    if (!data) {
+      const defaultImages = [
+        "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1504052434569-70ad58565b90?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&q=80&w=800"
+      ];
+      await supabase.from("announcements").insert([{
+        id: "system-image-gallery",
+        title: "System Image Gallery",
+        content: JSON.stringify(defaultImages),
+        category: "System",
+        important: false,
+        date: new Date().toISOString().split("T")[0],
+        created_by: "System"
+      }]);
+      return defaultImages;
+    }
+
+    try {
+      return JSON.parse(data.content);
+    } catch (e) {
+      return [];
+    }
+  },
+
+  async addGalleryImage(url: string): Promise<string[]> {
+    const current = await this.getGalleryImages();
+    if (current.includes(url)) return current;
+    const updated = [...current, url];
+    
+    const { error } = await supabase
+      .from("announcements")
+      .update({ content: JSON.stringify(updated) })
+      .eq("id", "system-image-gallery");
+
+    if (error) {
+      console.error("Erro ao salvar imagem na galeria:", error);
+    }
+    return updated;
   }
 };

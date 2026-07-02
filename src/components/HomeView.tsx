@@ -237,7 +237,7 @@ export default function HomeView({ events, news, verse, onNavigateTo, bannerImag
             <div className="mt-6">
               <h3 className="font-display font-bold text-white text-sm">Desafio Jovem</h3>
               <p className="text-xs text-neutral-400 mt-1.5 leading-relaxed font-light">
-                Leitura diária e ações práticas semanais que geram medalhas, conquistas e pontos de engajamento.
+                Leitura diária e ações práticas semanais que geram pontos de engajamento e conquistas no grupo.
               </p>
             </div>
           </div>

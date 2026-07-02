@@ -647,6 +647,31 @@ async function startServer() {
     }
   });
 
+  app.put("/api/events/:id", authenticateToken, async (req: any, res: any) => {
+    try {
+      const { role } = req.user;
+      if (role !== UserRole.ADMIN && role !== UserRole.LEADER) {
+        return res.status(403).json({ error: "Permissão insuficiente" });
+      }
+
+      const { title, description, date, time, address, category, imageUrl } = req.body;
+      const updated = await db.updateEvent(req.params.id, {
+        title,
+        description,
+        date,
+        time,
+        address,
+        category,
+        imageUrl
+      });
+
+      res.json(updated);
+    } catch (err: any) {
+      console.error("Erro ao atualizar evento:", err);
+      res.status(500).json({ error: "Erro interno no servidor" });
+    }
+  });
+
   // --- PRAYER REQUESTS ---
   app.get("/api/prayer-requests", authenticateToken, async (req, res) => {
     try {
@@ -869,6 +894,48 @@ async function startServer() {
     }
   });
 
+  app.put("/api/challenges/:id", authenticateToken, async (req: any, res: any) => {
+    try {
+      const { role } = req.user;
+      if (role !== UserRole.ADMIN && role !== UserRole.LEADER) {
+        return res.status(403).json({ error: "Permissão insuficiente" });
+      }
+
+      const { title, description, imageUrl, startDate, endDate, prize, maxWinners, points, active } = req.body;
+      const updated = await db.updateChallenge(req.params.id, {
+        title,
+        description,
+        imageUrl,
+        startDate,
+        endDate,
+        prize,
+        maxWinners,
+        points,
+        active
+      });
+
+      res.json(updated);
+    } catch (err: any) {
+      console.error("Erro ao atualizar desafio:", err);
+      res.status(500).json({ error: "Erro interno no servidor" });
+    }
+  });
+
+  app.delete("/api/challenges/:id", authenticateToken, async (req: any, res: any) => {
+    try {
+      const { role } = req.user;
+      if (role !== UserRole.ADMIN && role !== UserRole.LEADER) {
+        return res.status(403).json({ error: "Permissão insuficiente" });
+      }
+
+      await db.deleteChallenge(req.params.id);
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("Erro ao deletar desafio:", err);
+      res.status(500).json({ error: "Erro interno no servidor" });
+    }
+  });
+
   // --- CHALLENGE SUBMISSIONS ---
   app.get("/api/submissions", authenticateToken, async (req: any, res: any) => {
     try {
@@ -1006,6 +1073,25 @@ async function startServer() {
     }
   });
 
+  app.post("/api/notifications", authenticateToken, async (req: any, res: any) => {
+    try {
+      const { title, message, type } = req.body;
+      const newNotif = {
+        id: "not-" + Math.random().toString(36).substr(2, 9),
+        title: title || "Notificação",
+        message: message || "",
+        date: new Date().toISOString().split("T")[0],
+        type: type || "aviso",
+        read: false
+      };
+      const created = await db.createNotification(newNotif);
+      res.status(201).json(created);
+    } catch (err: any) {
+      console.error("Erro ao criar notificação:", err);
+      res.status(500).json({ error: "Erro interno no servidor" });
+    }
+  });
+
   app.post("/api/notifications/read-all", authenticateToken, async (req, res) => {
     try {
       await db.markAllNotificationsRead();
@@ -1108,6 +1194,37 @@ async function startServer() {
     } catch (err: any) {
       console.error("Erro ao salvar configurações:", err);
       res.status(500).json({ error: "Erro interno no servidor" });
+    }
+  });
+
+  // --- IMAGE GALLERY ---
+  app.get("/api/gallery", async (req, res) => {
+    try {
+      const images = await db.getGalleryImages();
+      res.json(images);
+    } catch (err: any) {
+      console.error("Erro ao buscar galeria de imagens:", err);
+      res.status(500).json({ error: "Erro ao buscar galeria de imagens" });
+    }
+  });
+
+  app.post("/api/gallery", authenticateToken, async (req: any, res: any) => {
+    try {
+      const { role } = req.user;
+      if (role !== UserRole.ADMIN && role !== UserRole.LEADER) {
+        return res.status(403).json({ error: "Permissão insuficiente para gerenciar a galeria" });
+      }
+
+      const { url } = req.body;
+      if (!url) {
+        return res.status(400).json({ error: "A URL da imagem é obrigatória" });
+      }
+
+      const updated = await db.addGalleryImage(url);
+      res.json(updated);
+    } catch (err: any) {
+      console.error("Erro ao salvar imagem na galeria:", err);
+      res.status(500).json({ error: "Erro ao salvar imagem na galeria" });
     }
   });
 

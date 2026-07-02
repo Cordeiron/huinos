@@ -14,12 +14,16 @@ interface ScheduleViewProps {
 export default function ScheduleView({ events }: ScheduleViewProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("Todos");
-  const [activeEventId, setActiveEventId] = useState<string>(events[0]?.id || "");
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const upcomingEvents = events.filter((e) => e.date >= todayStr);
+
+  const [activeEventId, setActiveEventId] = useState<string>(upcomingEvents[0]?.id || "");
 
   const categories = ["Todos", "Culto", "Célula", "Conferência", "Reunião"];
 
   // Filter events based on search and category
-  const filteredEvents = events.filter((e) => {
+  const filteredEvents = upcomingEvents.filter((e) => {
     const matchesSearch =
       e.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       e.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -31,7 +35,7 @@ export default function ScheduleView({ events }: ScheduleViewProps) {
     return matchesSearch && matchesCategory;
   });
 
-  const activeEvent = events.find((e) => e.id === activeEventId) || filteredEvents[0];
+  const activeEvent = upcomingEvents.find((e) => e.id === activeEventId) || filteredEvents[0];
 
   // Helper to generate real Google Calendar link
   const generateGoogleCalendarUrl = (item: EventItem) => {

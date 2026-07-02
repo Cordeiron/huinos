@@ -163,6 +163,13 @@ export const api = {
     });
   },
 
+  async updateEvent(id: string, eventData: any) {
+    return this.request(`/api/events/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(eventData),
+    });
+  },
+
   async deleteEvent(id: string) {
     return this.request(`/api/events/${id}`, {
       method: "DELETE",
@@ -222,6 +229,19 @@ export const api = {
     return this.request("/api/challenges", {
       method: "POST",
       body: JSON.stringify(chalData),
+    });
+  },
+
+  async updateChallenge(id: string, chalData: any) {
+    return this.request(`/api/challenges/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(chalData),
+    });
+  },
+
+  async deleteChallenge(id: string) {
+    return this.request(`/api/challenges/${id}`, {
+      method: "DELETE",
     });
   },
 
@@ -288,5 +308,17 @@ export const api = {
   // --- Logs ---
   async getLogs() {
     return this.request("/api/logs");
+  },
+
+  // --- Image Gallery ---
+  async getGalleryImages() {
+    return this.request("/api/gallery");
+  },
+
+  async addGalleryImage(url: string) {
+    return this.request("/api/gallery", {
+      method: "POST",
+      body: JSON.stringify({ url }),
+    });
   },
 };

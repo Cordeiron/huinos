@@ -4,16 +4,18 @@
  */
 
 import React, { useState } from "react";
-import { User, Phone, Mail, Calendar, Home, Award, Sparkles, Shield, Compass, BookOpen, Users, CheckCircle, Music, Briefcase, Heart, Target, Flame } from "lucide-react";
+import { User, Phone, Mail, Calendar, Home, Award, Sparkles, Shield, Compass, BookOpen, Users, CheckCircle, Music, Briefcase, Heart, Target, Flame, Gift, Lock } from "lucide-react";
 import { UserProfile } from "../types";
+import { api } from "../lib/api";
 
 interface ProfileViewProps {
   activeUser: UserProfile;
   onUpdateProfile: (name: string, phone: string, email: string, cellGroup: string, birthDate: string) => void;
   onLogout: () => void;
+  onNavigateTo?: (view: string) => void;
 }
 
-export default function ProfileView({ activeUser, onUpdateProfile, onLogout }: ProfileViewProps) {
+export default function ProfileView({ activeUser, onUpdateProfile, onLogout, onNavigateTo }: ProfileViewProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(activeUser.name);
   const [phone, setPhone] = useState(activeUser.phone);
@@ -21,6 +23,9 @@ export default function ProfileView({ activeUser, onUpdateProfile, onLogout }: P
   const [cellGroup, setCellGroup] = useState(activeUser.cellGroup);
   const [birthDate, setBirthDate] = useState(activeUser.birthDate);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  const [benefitStatus, setBenefitStatus] = useState<"idle" | "sent" | "error">("idle");
+  const [isSendingBenefit, setIsSendingBenefit] = useState(false);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,6 +122,27 @@ export default function ProfileView({ activeUser, onUpdateProfile, onLogout }: P
     });
   });
 
+  const handleClaimBenefits = async () => {
+    if (benefitStatus === "sent") return;
+    setIsSendingBenefit(true);
+    try {
+      await api.request("/api/notifications", {
+        method: "POST",
+        body: JSON.stringify({
+          title: "🎁 Solicitação de Benefício HUIOS",
+          message: `O jovem ${activeUser.name} (${activeUser.email}) solicitou o resgate de seus benefícios. Ele possui ${unlockedCount} de ${totalInsignias} insígnias conquistadas.`,
+          type: "desafio"
+        })
+      });
+      setBenefitStatus("sent");
+    } catch (err) {
+      console.error("Erro ao solicitar benefícios:", err);
+      setBenefitStatus("error");
+    } finally {
+      setIsSendingBenefit(false);
+    }
+  };
+
   return (
     <div id="profile-view-container" className="space-y-6 pb-16 text-left max-w-4xl mx-auto">
       {/* Visual profile header - Premium Bento Box */}
@@ -146,20 +172,28 @@ export default function ProfileView({ activeUser, onUpdateProfile, onLogout }: P
                 <span className="block text-[9px] uppercase tracking-wider text-neutral-400">Pontuação</span>
                 <span className="font-mono text-lg font-black text-[#C62828]">{activeUser.points} pts</span>
               </div>
-              <div className="bg-white/5 rounded-2xl px-4 py-2 text-center min-w-[100px] border border-white/5">
-                <span className="block text-[9px] uppercase tracking-wider text-neutral-400">Medalhas</span>
-                <span className="font-mono text-lg font-black text-white">🥇 {activeUser.medals.gold} 🥈 {activeUser.medals.silver}</span>
-              </div>
             </div>
           </div>
 
           <div className="flex flex-wrap gap-2 shrink-0">
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className="rounded-xl border border-white/10 px-5 py-2.5 text-xs font-bold text-white bg-white/5 hover:bg-white/10 transition-colors"
-            >
-              {isEditing ? "Cancelar" : "Editar Cadastro"}
-            </button>
+            {onNavigateTo && (
+              <>
+                <button
+                  onClick={() => onNavigateTo("Home")}
+                  className="rounded-xl border border-white/10 px-5 py-2.5 text-xs font-bold text-white bg-white/5 hover:bg-white/10 transition-colors flex items-center gap-1.5"
+                >
+                  <Home className="h-3.5 w-3.5 text-neutral-400" />
+                  Início
+                </button>
+                <button
+                  onClick={() => onNavigateTo("Desafio Jovem")}
+                  className="rounded-xl border border-white/10 px-5 py-2.5 text-xs font-bold text-white bg-white/5 hover:bg-white/10 transition-colors flex items-center gap-1.5"
+                >
+                  <Award className="h-3.5 w-3.5 text-neutral-400" />
+                  Desafios
+                </button>
+              </>
+            )}
             <button
               onClick={onLogout}
               className="rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/20 px-5 py-2.5 text-xs font-bold text-red-400 hover:text-red-300 transition-colors"
@@ -170,143 +204,10 @@ export default function ProfileView({ activeUser, onUpdateProfile, onLogout }: P
         </div>
       </section>
 
-      {showSuccess && (
-        <div className="rounded-2xl bg-emerald-950/30 border border-emerald-900/30 p-4 text-xs font-bold text-emerald-400 flex gap-2">
-          <CheckCircle className="h-4 w-4 shrink-0 text-emerald-500" />
-          <span>Cadastro atualizado com sucesso! Suas informações foram salvas localmente.</span>
-        </div>
-      )}
-
       {/* Main Grid: Bento pieces */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Profile info / form (Left 5) */}
-        <div className="lg:col-span-5 rounded-3xl border border-white/5 bg-[#252525] p-6 shadow-md">
-          {isEditing ? (
-            <form onSubmit={handleSave} className="space-y-4">
-              <h3 className="font-display text-sm font-bold text-white border-b border-white/5 pb-2.5">
-                Editar Informações Pessoais
-              </h3>
-              
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold text-neutral-400 uppercase">Nome Completo</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 rounded-xl outline-none text-white focus:border-[#C62828]/50"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold text-neutral-400 uppercase">WhatsApp / Celular</label>
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 rounded-xl outline-none text-white focus:border-[#C62828]/50"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold text-neutral-400 uppercase">Email de Contato</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 rounded-xl outline-none text-white focus:border-[#C62828]/50"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold text-neutral-400 uppercase">Sua Célula HUIOS</label>
-                <input
-                  type="text"
-                  value={cellGroup}
-                  onChange={(e) => setCellGroup(e.target.value)}
-                  className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 rounded-xl outline-none text-white focus:border-[#C62828]/50"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold text-neutral-400 uppercase">Data de Nascimento</label>
-                <input
-                  type="date"
-                  value={birthDate}
-                  onChange={(e) => setBirthDate(e.target.value)}
-                  className="w-full py-2.5 px-3 text-xs bg-[#1B1B1B] border border-white/5 rounded-xl outline-none text-white focus:border-[#C62828]/50"
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="flex-1 rounded-xl border border-white/10 py-2.5 text-xs font-bold text-neutral-400 hover:bg-white/5 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 rounded-xl bg-[#C62828] text-white py-2.5 text-xs font-bold hover:bg-red-700 transition-colors shadow-md"
-                >
-                  Salvar
-                </button>
-              </div>
-            </form>
-          ) : (
-            <div className="space-y-5">
-              <h3 className="font-display text-sm font-bold text-white border-b border-white/5 pb-2.5">
-                Ficha Cadastral
-              </h3>
-
-              <div className="space-y-4 text-xs text-neutral-300">
-                <div className="flex items-center gap-3 bg-[#1B1B1B]/40 p-3 rounded-2xl border border-white/5">
-                  <User className="h-5 w-5 text-[#C62828] shrink-0" />
-                  <div>
-                    <span className="text-[9px] text-neutral-500 uppercase block font-bold">Nome</span>
-                    <span className="font-semibold text-white">{activeUser.name}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 bg-[#1B1B1B]/40 p-3 rounded-2xl border border-white/5">
-                  <Phone className="h-5 w-5 text-[#C62828] shrink-0" />
-                  <div>
-                    <span className="text-[9px] text-neutral-500 uppercase block font-bold">Celular</span>
-                    <span className="font-semibold text-white">{activeUser.phone}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 bg-[#1B1B1B]/40 p-3 rounded-2xl border border-white/5">
-                  <Mail className="h-5 w-5 text-[#C62828] shrink-0" />
-                  <div>
-                    <span className="text-[9px] text-neutral-500 uppercase block font-bold">Email</span>
-                    <span className="font-semibold text-white">{activeUser.email}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 bg-[#1B1B1B]/40 p-3 rounded-2xl border border-white/5">
-                  <Home className="h-5 w-5 text-[#C62828] shrink-0" />
-                  <div>
-                    <span className="text-[9px] text-neutral-500 uppercase block font-bold">Célula</span>
-                    <span className="font-semibold text-white">{activeUser.cellGroup}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 bg-[#1B1B1B]/40 p-3 rounded-2xl border border-white/5">
-                  <Calendar className="h-5 w-5 text-[#C62828] shrink-0" />
-                  <div>
-                    <span className="text-[9px] text-neutral-500 uppercase block font-bold">Nascimento</span>
-                    <span className="font-semibold text-white">{activeUser.birthDate}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Achievements grid (Right 7) */}
-        <div className="lg:col-span-7 space-y-6">
+      <section className="w-full">
+        {/* Achievements grid */}
+        <div className="w-full space-y-6">
           <div className="flex items-center justify-between border-b border-white/5 pb-4">
             <h3 className="font-display text-sm font-bold text-white flex items-center gap-1.5">
               <Award className="h-4 w-4 text-[#C62828]" />
@@ -330,32 +231,71 @@ export default function ProfileView({ activeUser, onUpdateProfile, onLogout }: P
                       return (
                         <div
                           key={item.id}
-                          className={`rounded-2xl border p-4 text-left flex items-start gap-3.5 transition-all duration-300 ${
+                          className={`relative rounded-2xl border p-4 text-left flex items-center gap-4 transition-all duration-500 overflow-hidden ${
                             isUnlocked
-                              ? "bg-[#252525] border-white/10 opacity-100 shadow-md"
-                              : "bg-[#1E1E1E] border-white/5 opacity-40 hover:opacity-55"
+                              ? "bg-gradient-to-br from-[#2D2222] via-[#201D1D] to-[#1C1818] border-amber-500/30 opacity-100 shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.05)] hover:border-amber-400/50 hover:shadow-[0_8px_30px_rgba(245,158,11,0.15)] group"
+                              : "bg-[#161616] border-white/5 opacity-40 hover:opacity-60"
                           }`}
                         >
-                          <div className={`p-2.5 rounded-xl shrink-0 ${
-                            isUnlocked 
-                              ? "bg-[#C62828]/10 text-[#C62828]" 
-                              : "bg-[#1B1B1B] text-neutral-600"
-                          }`}>
-                            <CatIcon className="h-4.5 w-4.5" />
+                          {/* Premium metallic badge overlay for active ones */}
+                          {isUnlocked && (
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-amber-400/10 transition-all duration-500" />
+                          )}
+                          
+                          {/* Physical Medallion */}
+                          <div className="relative shrink-0">
+                            {isUnlocked ? (
+                              <div className="relative w-14 h-14 rounded-full flex items-center justify-center border-2 border-amber-500 bg-gradient-to-b from-neutral-800 via-neutral-900 to-neutral-950 text-amber-400 shadow-[0_4px_12px_rgba(0,0,0,0.5),0_0_8px_rgba(245,158,11,0.3)] group-hover:scale-105 transition-transform duration-300">
+                                {/* Golden shining ring */}
+                                <div className="absolute inset-0.5 rounded-full border border-amber-400/20 pointer-events-none" />
+                                <div className="absolute -inset-[3px] rounded-full border border-amber-500/10 pointer-events-none animate-pulse" />
+                                
+                                <CatIcon className="h-6 w-6 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+                                
+                                {/* Tiny shiny emblem star */}
+                                <span className="absolute -top-1 -right-1 text-[8px] animate-bounce">✨</span>
+                              </div>
+                            ) : (
+                              <div className="relative w-14 h-14 rounded-full flex items-center justify-center border border-white/10 bg-[#1A1A1A] text-neutral-600">
+                                <div className="absolute inset-0.5 rounded-full border border-dashed border-white/5" />
+                                <CatIcon className="h-5 w-5 opacity-40" />
+                                <Lock className="absolute h-3 w-3 bottom-0 right-0 text-neutral-500 bg-[#161616] rounded-full p-0.5 border border-white/5" />
+                              </div>
+                            )}
                           </div>
+
+                          {/* Info Text */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 justify-between">
-                              <h5 className={`text-xs font-bold truncate ${isUnlocked ? "text-white" : "text-neutral-500"}`}>
+                              <h5 className={`text-xs font-black tracking-wide font-display ${isUnlocked ? "bg-gradient-to-r from-white via-neutral-100 to-amber-200 bg-clip-text text-transparent" : "text-neutral-500"}`}>
                                 {item.title}
                               </h5>
-                              {isUnlocked && <span className="text-[10px] shrink-0">✨</span>}
+                              {isUnlocked && (
+                                <span className="text-[8px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full font-mono shrink-0">
+                                  HUIOS
+                                </span>
+                              )}
                             </div>
-                            <p className="text-[10px] text-neutral-400 leading-snug mt-1 font-light line-clamp-2">{item.description}</p>
-                            <span className={`block text-[8px] font-bold uppercase mt-2.5 tracking-wider ${
-                              isUnlocked ? "text-emerald-400" : "text-neutral-600"
-                            }`}>
-                              {isUnlocked ? "✅ DESBLOQUEADO" : "🔒 BLOQUEADO"}
-                            </span>
+                            <p className="text-[10px] text-neutral-400 leading-relaxed mt-1 font-light line-clamp-2">
+                              {item.description}
+                            </p>
+                            <div className="flex items-center gap-1 mt-2.5">
+                              {isUnlocked ? (
+                                <>
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                  <span className="text-[8px] font-black text-emerald-400 uppercase tracking-wider">
+                                    CONQUISTADO
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="w-1.5 h-1.5 rounded-full bg-neutral-600" />
+                                  <span className="text-[8px] font-bold text-neutral-500 uppercase tracking-wider">
+                                    BLOQUEADO
+                                  </span>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
@@ -364,6 +304,57 @@ export default function ProfileView({ activeUser, onUpdateProfile, onLogout }: P
                 </div>
               );
             })}
+          </div>
+
+          {/* Resgatar Benefícios Section */}
+          <div className="bg-[#1E1E1E] rounded-2xl border border-white/5 p-5 mt-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className={`p-2.5 rounded-xl ${unlockedCount === totalInsignias ? "bg-[#C62828]/10 text-[#C62828]" : "bg-neutral-800 text-neutral-500"}`}>
+                <Gift className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0 text-left">
+                <h4 className="text-xs font-bold text-white font-display">Benefícios Exclusivos HUIOS</h4>
+                <p className="text-[10px] text-neutral-400 mt-1 leading-relaxed font-light">
+                  Ao conquistar todas as 20 insígnias de estudo, oração, comunhão e desafios, você desbloqueia o direito de resgatar prêmios e benefícios com seus líderes.
+                </p>
+              </div>
+            </div>
+
+            {benefitStatus === "sent" ? (
+              <div className="rounded-xl bg-emerald-950/30 border border-emerald-900/30 p-3 text-[10px] font-bold text-emerald-400 flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-500" />
+                <span>Solicitação de resgate enviada com sucesso para os líderes e administradores!</span>
+              </div>
+            ) : benefitStatus === "error" ? (
+              <div className="rounded-xl bg-red-950/30 border border-red-900/30 p-3 text-[10px] font-bold text-red-400 flex items-center gap-2">
+                <Shield className="h-4 w-4 shrink-0 text-red-500" />
+                <span>Ocorreu um erro ao enviar a solicitação. Tente novamente mais tarde.</span>
+              </div>
+            ) : null}
+
+            <button
+              onClick={handleClaimBenefits}
+              disabled={benefitStatus === "sent" || isSendingBenefit}
+              className={`w-full py-3 px-4 rounded-xl font-display text-xs font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
+                unlockedCount === totalInsignias && benefitStatus !== "sent"
+                  ? "bg-[#C62828] text-white hover:bg-[#D32F2F] shadow-lg shadow-[#C62828]/20 cursor-pointer"
+                  : "bg-[#1B1B1B] text-neutral-500 border border-white/5 cursor-not-allowed opacity-60"
+              }`}
+            >
+              {isSendingBenefit ? (
+                <span>Processando...</span>
+              ) : unlockedCount === totalInsignias ? (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  <span>Resgatar Benefícios</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="h-4 w-4" />
+                  <span>Resgatar Benefícios (Bloqueado - Conclua as {totalInsignias} Insígnias)</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </section>

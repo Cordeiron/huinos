@@ -71,6 +71,7 @@ export default function App() {
 
   const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
 
   // UI state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -124,6 +125,13 @@ export default function App() {
 
       const nw = await api.getNews();
       setNews(nw);
+
+      try {
+        const imgs = await api.getGalleryImages();
+        setGalleryImages(imgs);
+      } catch (err) {
+        console.error("Erro ao carregar galeria:", err);
+      }
 
       const anns = await api.getAnnouncements(); // Announcements can be handled locally or shown in events/announcements
 
@@ -361,6 +369,15 @@ export default function App() {
     }
   };
 
+  const handleUpdateEvent = async (id: string, eventData: any) => {
+    try {
+      await api.updateEvent(id, eventData);
+      loadAllData();
+    } catch (err) {
+      console.error("Erro ao atualizar evento:", err);
+    }
+  };
+
   const handleDeleteEvent = async (id: string) => {
     try {
       await api.deleteEvent(id);
@@ -385,6 +402,33 @@ export default function App() {
       loadAllData();
     } catch (err) {
       console.error("Erro ao adicionar desafio:", err);
+    }
+  };
+
+  const handleUpdateChallenge = async (id: string, chalData: any) => {
+    try {
+      await api.updateChallenge(id, chalData);
+      loadAllData();
+    } catch (err) {
+      console.error("Erro ao atualizar desafio:", err);
+    }
+  };
+
+  const handleDeleteChallenge = async (id: string) => {
+    try {
+      await api.deleteChallenge(id);
+      loadAllData();
+    } catch (err) {
+      console.error("Erro ao excluir desafio:", err);
+    }
+  };
+
+  const handleAddGalleryImage = async (url: string) => {
+    try {
+      const updated = await api.addGalleryImage(url);
+      setGalleryImages(updated);
+    } catch (err) {
+      console.error("Erro ao adicionar imagem à galeria:", err);
     }
   };
 
@@ -544,6 +588,7 @@ export default function App() {
             activeUser={activeUser}
             onUpdateProfile={handleUpdateProfile}
             onLogout={handleLogout}
+            onNavigateTo={setActiveView}
           />
         );
       case "Admin":
@@ -570,8 +615,13 @@ export default function App() {
             onAddNews={handleAddNews}
             onDeleteNews={handleDeleteNews}
             onAddEvent={handleAddEvent}
+            onUpdateEvent={handleUpdateEvent}
             onDeleteEvent={handleDeleteEvent}
             onAddChallenge={handleAddChallenge}
+            onUpdateChallenge={handleUpdateChallenge}
+            onDeleteChallenge={handleDeleteChallenge}
+            galleryImages={galleryImages}
+            onAddGalleryImage={handleAddGalleryImage}
             onApproveSubmission={handleApproveSubmission}
             onRejectSubmission={handleRejectSubmission}
             onReplyPrayer={handleReplyPrayer}
